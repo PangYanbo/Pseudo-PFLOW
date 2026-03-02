@@ -2,11 +2,11 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.Polygon
+ *  org.locationtech.jts.geom.Polygon
  */
 package jp.ac.ut.csis.pflow.reallocation;
 
-import com.vividsolutions.jts.geom.Polygon;
+import org.locationtech.jts.geom.Polygon;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.reallocation.POI;
 

@@ -2,9 +2,9 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.Geometry
- *  com.vividsolutions.jts.geom.Point
- *  com.vividsolutions.jts.geom.Polygon
+ *  org.locationtech.jts.geom.Geometry
+ *  org.locationtech.jts.geom.Point
+ *  org.locationtech.jts.geom.Polygon
  *  org.apache.logging.log4j.LogManager
  *  org.apache.logging.log4j.Logger
  *  org.postgis.PGgeometry
@@ -12,8 +12,8 @@
  */
 package jp.ac.ut.csis.pflow.reallocation;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Polygon;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -85,7 +85,7 @@ extends AReallocator {
         String wkt = GeometryUtils.createWKTString((Geometry)areaPolygon);
         String sql = String.format("select a.gid,a.name,a.area,a.geom from %s where ST_Within(geom,ST_SetSRID(ST_GeomFromText('%s'),4326)))", this._tablename, wkt);
         LOGGER.debug(sql);
-        com.vividsolutions.jts.geom.Point centroid = areaPolygon.getCentroid();
+        org.locationtech.jts.geom.Point centroid = areaPolygon.getCentroid();
         return this.reallocateRandom(sql, new LonLat(centroid.getX(), centroid.getY()));
     }
 
@@ -175,7 +175,7 @@ extends AReallocator {
         String wkt = GeometryUtils.createWKTString((Geometry)areaPolygon);
         String sql = String.format("select a.gid,a.name,a.area,a.geom,area/b.R as ratio from (select gid,name,area,geom from %s where ST_Within(geom,ST_SetSRID(ST_GeomFromText('%s'),4326))) a,(select sum(area) as R     from %s where ST_Within(geom,ST_SetSRID(ST_GeomFromText('%s'),4326))) b order by ratio desc", this._tablename, wkt, this._tablename, wkt);
         LOGGER.debug(sql);
-        com.vividsolutions.jts.geom.Point centroid = areaPolygon.getCentroid();
+        org.locationtech.jts.geom.Point centroid = areaPolygon.getCentroid();
         return this.reallocateAreaProb(sql, new LonLat(centroid.getX(), centroid.getY()));
     }
 

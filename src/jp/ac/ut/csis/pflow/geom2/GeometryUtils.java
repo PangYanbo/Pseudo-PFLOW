@@ -2,39 +2,39 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.Coordinate
- *  com.vividsolutions.jts.geom.Geometry
- *  com.vividsolutions.jts.geom.GeometryFactory
- *  com.vividsolutions.jts.geom.LineString
- *  com.vividsolutions.jts.geom.MultiLineString
- *  com.vividsolutions.jts.geom.MultiPoint
- *  com.vividsolutions.jts.geom.MultiPolygon
- *  com.vividsolutions.jts.geom.Point
- *  com.vividsolutions.jts.geom.Polygon
- *  com.vividsolutions.jts.geom.PrecisionModel
- *  com.vividsolutions.jts.io.ParseException
- *  com.vividsolutions.jts.io.WKBReader
- *  com.vividsolutions.jts.io.WKBWriter
- *  com.vividsolutions.jts.io.WKTReader
- *  com.vividsolutions.jts.io.WKTWriter
+ *  org.locationtech.jts.geom.Coordinate
+ *  org.locationtech.jts.geom.Geometry
+ *  org.locationtech.jts.geom.GeometryFactory
+ *  org.locationtech.jts.geom.LineString
+ *  org.locationtech.jts.geom.MultiLineString
+ *  org.locationtech.jts.geom.MultiPoint
+ *  org.locationtech.jts.geom.MultiPolygon
+ *  org.locationtech.jts.geom.Point
+ *  org.locationtech.jts.geom.Polygon
+ *  org.locationtech.jts.geom.PrecisionModel
+ *  org.locationtech.jts.io.ParseException
+ *  org.locationtech.jts.io.WKBReader
+ *  org.locationtech.jts.io.WKBWriter
+ *  org.locationtech.jts.io.WKTReader
+ *  org.locationtech.jts.io.WKTWriter
  */
 package jp.ac.ut.csis.pflow.geom2;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKBReader;
+import org.locationtech.jts.io.WKBWriter;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.WKTWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

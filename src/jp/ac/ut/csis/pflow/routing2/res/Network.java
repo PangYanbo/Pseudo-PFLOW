@@ -2,25 +2,25 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.Envelope
- *  com.vividsolutions.jts.geom.Geometry
- *  com.vividsolutions.jts.geom.LineString
- *  com.vividsolutions.jts.geom.Point
- *  com.vividsolutions.jts.geom.Polygon
- *  com.vividsolutions.jts.geom.prep.PreparedGeometry
- *  com.vividsolutions.jts.geom.prep.PreparedGeometryFactory
- *  com.vividsolutions.jts.index.quadtree.Quadtree
+ *  org.locationtech.jts.geom.Envelope
+ *  org.locationtech.jts.geom.Geometry
+ *  org.locationtech.jts.geom.LineString
+ *  org.locationtech.jts.geom.Point
+ *  org.locationtech.jts.geom.Polygon
+ *  org.locationtech.jts.geom.prep.PreparedGeometry
+ *  org.locationtech.jts.geom.prep.PreparedGeometryFactory
+ *  org.locationtech.jts.index.quadtree.Quadtree
  */
 package jp.ac.ut.csis.pflow.routing2.res;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.geom.prep.PreparedGeometry;
-import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
-import com.vividsolutions.jts.index.quadtree.Quadtree;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.prep.PreparedGeometry;
+import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
+import org.locationtech.jts.index.quadtree.Quadtree;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;

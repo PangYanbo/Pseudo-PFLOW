@@ -2,14 +2,14 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.LineString
- *  com.vividsolutions.jts.geom.Point
+ *  org.locationtech.jts.geom.LineString
+ *  org.locationtech.jts.geom.Point
  *  org.apache.commons.lang.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing4.loader;
 
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;

@@ -2,18 +2,18 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  com.vividsolutions.jts.geom.LineString
- *  com.vividsolutions.jts.geom.Point
- *  com.vividsolutions.jts.io.ParseException
- *  com.vividsolutions.jts.io.WKBReader
+ *  org.locationtech.jts.geom.LineString
+ *  org.locationtech.jts.geom.Point
+ *  org.locationtech.jts.io.ParseException
+ *  org.locationtech.jts.io.WKBReader
  *  org.apache.commons.lang.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing2.loader;
 
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKBReader;
 import java.awt.geom.Rectangle2D;
 import java.sql.Connection;
 import java.sql.ResultSet;
