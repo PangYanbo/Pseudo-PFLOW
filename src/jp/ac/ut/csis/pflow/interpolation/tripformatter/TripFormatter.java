@@ -2,9 +2,9 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
- *  org.apache.commons.lang.text.StrTokenizer
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.StringUtils
+ *  org.apache.commons.lang3.text.StrTokenizer
+ *  org.apache.commons.lang3.time.DateUtils
  *  org.apache.commons.logging.Log
  *  org.apache.commons.logging.LogFactory
  */
@@ -35,9 +35,9 @@ import jp.ac.ut.csis.pflow.interpolation.tripformatter.FormatMove2Stay;
 import jp.ac.ut.csis.pflow.interpolation.tripformatter.FormatStay2Move;
 import jp.ac.ut.csis.pflow.interpolation.tripformatter.FormatStay2Stay;
 import jp.ac.ut.csis.pflow.interpolation.tripformatter.ITripFormatter;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrTokenizer;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrTokenizer;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

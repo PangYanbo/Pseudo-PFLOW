@@ -6,7 +6,7 @@
  *  org.locationtech.jts.geom.Point
  *  org.locationtech.jts.io.ParseException
  *  org.locationtech.jts.io.WKBReader
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing3.loader;
 
@@ -33,7 +33,7 @@ import jp.ac.ut.csis.pflow.routing3.res.Network;
 import jp.ac.ut.csis.pflow.routing3.res.Node;
 import jp.ac.ut.csis.pflow.routing3.res.RailwayLink;
 import jp.ac.ut.csis.pflow.routing3.res.RailwayNode;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class PgRailwayLoader
 extends APgNetworkLoader {

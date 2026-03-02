@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing4.sample;
 
@@ -19,7 +19,7 @@ import jp.ac.ut.csis.pflow.routing4.logic.linkcost.LinkCost;
 import jp.ac.ut.csis.pflow.routing4.logic.transport.DrmTransport;
 import jp.ac.ut.csis.pflow.routing4.res.Network;
 import jp.ac.ut.csis.pflow.routing4.res.Route;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class DrmExample03 {
     public static void main(String[] args) throws IOException {

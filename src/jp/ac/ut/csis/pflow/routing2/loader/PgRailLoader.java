@@ -8,7 +8,7 @@
  *  org.locationtech.jts.geom.Point
  *  org.locationtech.jts.io.ParseException
  *  org.locationtech.jts.io.WKBReader
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  *  org.apache.logging.log4j.LogManager
  *  org.apache.logging.log4j.Logger
  */
@@ -34,7 +34,7 @@ import jp.ac.ut.csis.pflow.routing2.loader.RailQueryCondition;
 import jp.ac.ut.csis.pflow.routing2.res.Network;
 import jp.ac.ut.csis.pflow.routing2.res.RailLink;
 import jp.ac.ut.csis.pflow.routing2.res.RailNode;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

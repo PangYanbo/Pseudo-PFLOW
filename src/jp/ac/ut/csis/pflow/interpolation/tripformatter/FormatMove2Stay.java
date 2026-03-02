@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.time.DateUtils
  */
 package jp.ac.ut.csis.pflow.interpolation.tripformatter;
 
@@ -19,7 +19,7 @@ import jp.ac.ut.csis.pflow.interpolation.trip.Stay;
 import jp.ac.ut.csis.pflow.interpolation.trip.TransportMode;
 import jp.ac.ut.csis.pflow.interpolation.tripformatter.FormatStay2Stay;
 import jp.ac.ut.csis.pflow.interpolation.tripformatter.ITripFormatter;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 
 public class FormatMove2Stay
 implements ITripFormatter {

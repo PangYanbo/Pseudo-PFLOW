@@ -2,15 +2,12 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.math.LongRange
- *  org.apache.commons.lang.math.Range
  */
 package jp.ac.ut.csis.pflow.geom;
 
 import java.util.Date;
 import jp.ac.ut.csis.pflow.geom.LonLat;
-import org.apache.commons.lang.math.LongRange;
-import org.apache.commons.lang.math.Range;
+import org.apache.commons.lang3.Range;
 
 public class STPoint
 extends LonLat
@@ -80,11 +77,11 @@ implements Comparable<STPoint> {
     }
 
     public boolean intersects(Date ts) {
-        return this._dtstart != null && this._dtend != null && ts != null && new LongRange(this._dtstart.getTime(), this._dtend.getTime()).containsLong(ts.getTime());
+        return this._dtstart != null && this._dtend != null && ts != null && Range.between(this._dtstart.getTime(), this._dtend.getTime()).contains(ts.getTime());
     }
 
     public boolean intersects(Date ts, Date te) {
-        return this._dtstart != null && this._dtend != null && ts != null && te != null && new LongRange(this._dtstart.getTime(), this._dtend.getTime()).overlapsRange((Range)new LongRange(ts.getTime(), te.getTime()));
+        return this._dtstart != null && this._dtend != null && ts != null && te != null && Range.between(this._dtstart.getTime(), this._dtend.getTime()).isOverlappedBy(Range.between(ts.getTime(), te.getTime()));
     }
 
     @Override

@@ -3,7 +3,7 @@
  * 
  * Could not load the following classes:
  *  org.apache.commons.dbcp.BasicDataSource
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.dbi;
 
@@ -12,7 +12,7 @@ import java.sql.SQLException;
 import jp.ac.ut.csis.pflow.dbi.ADBLoader;
 import jp.ac.ut.csis.pflow.dbi.IDBLoader;
 import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public final class PgsqlLoader
 extends ADBLoader {

@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.ArrayUtils
+ *  org.apache.commons.lang3.ArrayUtils
  */
 package jp.ac.ut.csis.pflow.routing2.res;
 
@@ -10,7 +10,7 @@ import java.util.List;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.routing2.res.Link;
 import jp.ac.ut.csis.pflow.routing2.res.Node;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class DrmLink
 extends Link {

@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.drm.binary;
 
@@ -21,7 +21,7 @@ import jp.ac.ut.csis.pflow.drm.binary.ParseDRM22;
 import jp.ac.ut.csis.pflow.drm.binary.ParseDRM23;
 import jp.ac.ut.csis.pflow.drm.binary.ParseDRM31;
 import jp.ac.ut.csis.pflow.drm.binary.ParseDRM32;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class ParseDRM {
     public static void main(String[] args) {

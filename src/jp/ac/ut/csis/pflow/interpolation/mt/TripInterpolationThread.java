@@ -2,8 +2,8 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.StringUtils
+ *  org.apache.commons.lang3.time.DateUtils
  */
 package jp.ac.ut.csis.pflow.interpolation.mt;
 
@@ -52,8 +52,8 @@ import jp.ac.ut.csis.pflow.routing4.res.Network;
 import jp.ac.ut.csis.pflow.routing4.res.Node;
 import jp.ac.ut.csis.pflow.routing4.res.Route;
 import jp.ac.ut.csis.pflow.thread.ARunningThread;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 
 public class TripInterpolationThread
 extends ARunningThread {

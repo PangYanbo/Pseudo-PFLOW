@@ -8,8 +8,8 @@
  *  org.locationtech.jts.geom.Point
  *  org.locationtech.jts.io.ParseException
  *  org.locationtech.jts.io.WKBReader
- *  org.apache.commons.lang.ArrayUtils
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.ArrayUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing2.loader;
 
@@ -34,8 +34,8 @@ import jp.ac.ut.csis.pflow.routing2.loader.QueryCondition;
 import jp.ac.ut.csis.pflow.routing2.res.DrmLink;
 import jp.ac.ut.csis.pflow.routing2.res.Network;
 import jp.ac.ut.csis.pflow.routing2.res.Node;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class PgDrmLoader
 extends APgNetworkLoader {

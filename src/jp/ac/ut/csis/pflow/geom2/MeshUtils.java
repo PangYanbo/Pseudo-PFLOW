@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.math.fraction.Fraction
+ *  org.apache.commons.math3.fraction.Fraction
  */
 package jp.ac.ut.csis.pflow.geom2;
 
@@ -12,7 +12,7 @@ import java.util.List;
 import jp.ac.ut.csis.pflow.geom2.ILonLat;
 import jp.ac.ut.csis.pflow.geom2.Mesh;
 import jp.ac.ut.csis.pflow.geom2.TrajectoryUtils;
-import org.apache.commons.math.fraction.Fraction;
+import org.apache.commons.math3.fraction.Fraction;
 
 public class MeshUtils {
     public static final Fraction LAT_HEIGHT_MESH1 = new Fraction(2, 3);

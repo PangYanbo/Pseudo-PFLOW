@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing2.matching;
 
@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.routing2.res.Link;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class MatchingResult {
     private LonLat _inputPoint;

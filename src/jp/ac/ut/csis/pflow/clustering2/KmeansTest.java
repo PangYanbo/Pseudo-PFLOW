@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  *
  * Could not load the following classes:
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.text.StrTokenizer
  */
 package jp.ac.ut.csis.pflow.clustering2;
 
@@ -21,7 +21,7 @@ import jp.ac.ut.csis.pflow.clustering2.CanopyKmeans;
 import jp.ac.ut.csis.pflow.geom2.ILonLat;
 import jp.ac.ut.csis.pflow.geom2.ILonLatTime;
 import jp.ac.ut.csis.pflow.geom2.LonLatTime;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.text.StrTokenizer;
 
 public class KmeansTest {
     @SuppressWarnings("unchecked")

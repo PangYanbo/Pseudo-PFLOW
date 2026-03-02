@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.text.StrTokenizer
  */
 package jp.ac.ut.csis.pflow.routing3.sample;
 
@@ -29,7 +29,7 @@ import jp.ac.ut.csis.pflow.routing3.logic.transport.DrmTransport;
 import jp.ac.ut.csis.pflow.routing3.mapmatching.SparseMapMatching;
 import jp.ac.ut.csis.pflow.routing3.res.Network;
 import jp.ac.ut.csis.pflow.routing3.res.Route;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.text.StrTokenizer;
 
 public class SparseMapMatchingSample01 {
     public static void main(String[] args) {

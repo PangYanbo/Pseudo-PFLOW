@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.ArrayUtils
+ *  org.apache.commons.lang3.ArrayUtils
  */
 package jp.ac.ut.csis.pflow.drm.binary;
 
@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import jp.ac.ut.csis.pflow.drm.binary.EBCDIC;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 public abstract class AParseDRM {
     public static final int RECORD_SIZE = 256;

@@ -4,7 +4,7 @@
  * Could not load the following classes:
  *  org.locationtech.jts.geom.LineString
  *  org.locationtech.jts.geom.Point
- *  org.apache.commons.lang.ArrayUtils
+ *  org.apache.commons.lang3.ArrayUtils
  */
 package jp.ac.ut.csis.pflow.routing4.loader;
 
@@ -24,7 +24,7 @@ import jp.ac.ut.csis.pflow.routing4.res.DrmLink;
 import jp.ac.ut.csis.pflow.routing4.res.Link;
 import jp.ac.ut.csis.pflow.routing4.res.Network;
 import jp.ac.ut.csis.pflow.routing4.res.Node;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class CsvDrmBasicRoadLoader
 extends ACsvNetworkLoader {

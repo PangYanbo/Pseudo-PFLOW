@@ -2,9 +2,9 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.ArrayUtils
- *  org.apache.commons.lang.StringUtils
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.ArrayUtils
+ *  org.apache.commons.lang3.StringUtils
+ *  org.apache.commons.lang3.text.StrTokenizer
  */
 package jp.ac.ut.csis.pflow.drm.binary;
 
@@ -28,9 +28,9 @@ import jp.ac.ut.csis.pflow.drm.binary.ParseDRM22;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.geom.Mesh;
 import jp.ac.ut.csis.pflow.geom.TrajectoryUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrTokenizer;
 
 public class BaseRoadConversionMain {
     public static void main(String[] args) {

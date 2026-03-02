@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.math.stat.StatUtils
+ *  org.apache.commons.math3.stat.StatUtils
  */
 package jp.ac.ut.csis.pflow.clustering2;
 
@@ -15,7 +15,7 @@ import java.util.Random;
 import jp.ac.ut.csis.pflow.geom2.DistanceUtils;
 import jp.ac.ut.csis.pflow.geom2.ILonLat;
 import jp.ac.ut.csis.pflow.geom2.LonLat;
-import org.apache.commons.math.stat.StatUtils;
+import org.apache.commons.math3.stat.StatUtils;
 
 public class CanopyKmeans {
     private double _innerRadius;

@@ -4,8 +4,8 @@
  * Could not load the following classes:
  *  org.locationtech.jts.geom.LineString
  *  org.locationtech.jts.geom.Point
- *  org.apache.commons.lang.ArrayUtils
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.ArrayUtils
+ *  org.apache.commons.lang3.text.StrTokenizer
  */
 package jp.ac.ut.csis.pflow.routing2.loader;
 
@@ -24,8 +24,8 @@ import jp.ac.ut.csis.pflow.routing2.res.Link;
 import jp.ac.ut.csis.pflow.routing2.res.Network;
 import jp.ac.ut.csis.pflow.routing2.res.Node;
 import jp.ac.ut.csis.pflow.routing2.res.OsmLink;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.text.StrTokenizer;
 
 public class CsvOsmWayLoader
 extends ACsvNetworkLoader {

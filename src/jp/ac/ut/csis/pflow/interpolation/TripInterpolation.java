@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.time.DateUtils
  */
 package jp.ac.ut.csis.pflow.interpolation;
 
@@ -44,7 +44,7 @@ import jp.ac.ut.csis.pflow.routing4.res.Link;
 import jp.ac.ut.csis.pflow.routing4.res.Network;
 import jp.ac.ut.csis.pflow.routing4.res.Node;
 import jp.ac.ut.csis.pflow.routing4.res.Route;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 
 public class TripInterpolation {
     private static final int[] ROAD_TYPES = new int[]{1, 2, 3, 4, 5, 6, 7};

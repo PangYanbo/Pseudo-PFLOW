@@ -2,8 +2,8 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.StringUtils
+ *  org.apache.commons.lang3.text.StrTokenizer
  */
 package jp.ac.ut.csis.pflow.interpolation.mt;
 
@@ -17,8 +17,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.text.StrTokenizer;
 
 public class Conv2PointLine {
     private Set<String> _ids = new HashSet<String>();

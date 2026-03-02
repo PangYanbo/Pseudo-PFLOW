@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.math.fraction.Fraction
+ *  org.apache.commons.math3.fraction.Fraction
  */
 package jp.ac.ut.csis.pflow.geom;
 
@@ -11,7 +11,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import jp.ac.ut.csis.pflow.geom.LonLat;
-import org.apache.commons.math.fraction.Fraction;
+import org.apache.commons.math3.fraction.Fraction;
 
 public class Mesh
 implements Serializable {

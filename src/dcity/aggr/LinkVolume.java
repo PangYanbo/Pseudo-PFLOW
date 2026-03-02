@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import jp.ac.ut.csis.pflow.geom2.ILonLatTime;
 import jp.ac.ut.csis.pflow.routing4.logic.Dijkstra;

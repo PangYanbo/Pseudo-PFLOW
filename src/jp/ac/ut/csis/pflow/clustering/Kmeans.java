@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.math.stat.StatUtils
+ *  org.apache.commons.math3.stat.StatUtils
  */
 package jp.ac.ut.csis.pflow.clustering;
 
@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Random;
 import jp.ac.ut.csis.pflow.geom.DistanceUtils;
 import jp.ac.ut.csis.pflow.geom.LonLat;
-import org.apache.commons.math.stat.StatUtils;
+import org.apache.commons.math3.stat.StatUtils;
 
 public class Kmeans {
     private int _k;

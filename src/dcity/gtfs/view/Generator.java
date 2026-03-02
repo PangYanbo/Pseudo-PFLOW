@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
-import com.vividsolutions.jts.geom.LineString;
+import org.locationtech.jts.geom.LineString;
 
 import jp.ac.ut.csis.pflow.geom2.DistanceUtils;
 import jp.ac.ut.csis.pflow.geom2.GeometryUtils;

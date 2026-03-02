@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing3.logic.linkcost;
 
@@ -14,7 +14,7 @@ import jp.ac.ut.csis.pflow.routing3.res.Network;
 import jp.ac.ut.csis.pflow.routing3.res.Node;
 import jp.ac.ut.csis.pflow.routing3.res.RailwayLink;
 import jp.ac.ut.csis.pflow.routing3.res.RailwayNode;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class RailwayLinkCost
 extends LinkCost {

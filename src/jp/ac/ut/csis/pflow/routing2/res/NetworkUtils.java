@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.StringUtils
  *  org.apache.logging.log4j.LogManager
  *  org.apache.logging.log4j.Logger
  */
@@ -18,7 +18,7 @@ import jp.ac.ut.csis.pflow.routing2.loader.ACsvNetworkLoader;
 import jp.ac.ut.csis.pflow.routing2.res.Link;
 import jp.ac.ut.csis.pflow.routing2.res.Network;
 import jp.ac.ut.csis.pflow.routing2.res.Node;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

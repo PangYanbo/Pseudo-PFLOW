@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.time.DateUtils
  */
 package jp.ac.ut.csis.pflow.geom2;
 
@@ -21,7 +21,7 @@ import jp.ac.ut.csis.pflow.geom2.ILonLat;
 import jp.ac.ut.csis.pflow.geom2.ILonLatTime;
 import jp.ac.ut.csis.pflow.geom2.LonLat;
 import jp.ac.ut.csis.pflow.geom2.LonLatTime;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 
 public final class TrajectoryUtils {
     public static <T extends ILonLat> Rectangle2D.Double makeMBR(Collection<T> set) {

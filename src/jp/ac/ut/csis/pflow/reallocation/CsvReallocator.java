@@ -9,7 +9,7 @@
  *  org.locationtech.jts.geom.prep.PreparedGeometry
  *  org.locationtech.jts.geom.prep.PreparedGeometryFactory
  *  org.locationtech.jts.index.strtree.STRtree
- *  org.apache.commons.lang.text.StrTokenizer
+ *  org.apache.commons.lang3.text.StrTokenizer
  *  org.apache.logging.log4j.LogManager
  *  org.apache.logging.log4j.Logger
  */
@@ -35,7 +35,7 @@ import jp.ac.ut.csis.pflow.geom.GeometryUtils;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.reallocation.AReallocator;
 import jp.ac.ut.csis.pflow.reallocation.POI;
-import org.apache.commons.lang.text.StrTokenizer;
+import org.apache.commons.lang3.text.StrTokenizer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

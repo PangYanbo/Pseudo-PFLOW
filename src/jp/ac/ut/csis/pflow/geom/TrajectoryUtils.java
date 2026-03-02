@@ -2,7 +2,7 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.time.DateUtils
+ *  org.apache.commons.lang3.time.DateUtils
  */
 package jp.ac.ut.csis.pflow.geom;
 
@@ -17,7 +17,7 @@ import java.util.TreeSet;
 import jp.ac.ut.csis.pflow.geom.DistanceUtils;
 import jp.ac.ut.csis.pflow.geom.LonLat;
 import jp.ac.ut.csis.pflow.geom.STPoint;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 
 public final class TrajectoryUtils {
     public static <T extends LonLat> double length(List<T> points) {

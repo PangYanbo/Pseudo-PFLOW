@@ -2,16 +2,16 @@
  * Decompiled with CFR 0.152.
  * 
  * Could not load the following classes:
- *  org.apache.commons.lang.ArrayUtils
- *  org.apache.commons.lang.StringUtils
+ *  org.apache.commons.lang3.ArrayUtils
+ *  org.apache.commons.lang3.StringUtils
  */
 package jp.ac.ut.csis.pflow.routing4.res;
 
 import java.util.HashSet;
 import java.util.Set;
 import jp.ac.ut.csis.pflow.routing4.res.Node;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class RailwayNode
 extends Node {
