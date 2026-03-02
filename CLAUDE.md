@@ -21,16 +21,16 @@ mvn package -DskipTests
 mvn exec:java -Dexec.mainClass="pseudo.gen.TripGenerator"
 ```
 
-The custom library `lib/pflowlib.jar` must be installed in the local Maven repository (or configured via IntelliJ's project libraries). It provides routing, geometry, and mesh utilities under `jp.ac.ut.csis.pflow.*`.
+The `jp.ac.ut.csis.pflow.*` routing, geometry, and mesh utilities are compiled from source at `src/jp/ac/ut/csis/pflow/` (decompiled from the original closed-source JAR). No JAR installation step is needed; `mvn compile` picks them up automatically. The original `lib/pflowlib.jar` is kept as a backup reference only.
 
-**Java target**: 11 (despite `java.version=1.8` property; the compiler plugin overrides to 11).
+**Java target**: 11 (`java.version=11` in `pom.xml`).
 
 ## Configuration
 
 Runtime configuration is in `src/main/resources/config.properties`:
 - `root` / `inputDir`: Root paths to the dataset (typically `C:/Data/PseudoPFLOW/` — must be updated per environment)
 - `pref.N`: Markov chain dataset to use for prefecture N (1–47)
-- `api.*`: Credentials and endpoints for CSIS WebAPI routing
+- `api.*`: Endpoints for CSIS WebAPI routing; credentials are loaded from environment variables `PFLOW_API_USER` / `PFLOW_API_PASS`
 - `car.N` / `bike.N`: Vehicle ownership rates per prefecture
 
 Dataset files are downloaded from `S3://pseudo-pflow/processing`. Each processing step reads from subdirectories under `root`.
@@ -63,7 +63,7 @@ Steps 2–4 run in parallel (one per labor type). Steps 2–4 outputs are merged
 - **`pt`** — PT survey analysis: `MarkovAnalyzer`, `MotifAnalyzer`, `OutingAnalyzer` (used for calibration, not pipeline execution).
 - **`network`** — Network loaders: `DrmLoader` (road DRM format), `RailLoader` (railway TSV).
 - **`utils`** — `Roulette` (weighted random selection), `Softmax`, `DateUtils`.
-- **`sim/sim3`, `sim/sim4`** — Traffic simulation modules (agent-based, queuing logic).
+- **`sim/sim4`** — Traffic simulation module (agent-based, queuing logic).
 - **`gtfs`, `dcity/gtfs`** — GTFS transit parsing and OTP (OpenTripPlanner) integration.
 - **`src/scripts`** — Jupyter notebooks for data evaluation and analysis (Python).
 
@@ -77,9 +77,9 @@ Steps 2–4 run in parallel (one per labor type). Steps 2–4 outputs are merged
 
 **Activity sequence**: Generated using Markov chains (`MkChainAccessor`) calibrated from Person Trip (PT) survey data, varying by gender, labor status, and metropolitan area.
 
-**`pflowlib.jar`** provides (closed-source):
-- `jp.ac.ut.csis.pflow.geom2.*` — `LonLat`, `Mesh`/`MeshUtils`, `DistanceUtils`, `TrajectoryUtils`
-- `jp.ac.ut.csis.pflow.routing4.*` — `Network`, `Node`, `Link`, `Route`, `Dijkstra`, `AStar`
+**`jp.ac.ut.csis.pflow.*`** (sources at `src/jp/ac/ut/csis/pflow/`):
+- `geom2.*` — `LonLat`, `Mesh`/`MeshUtils`, `DistanceUtils`, `TrajectoryUtils`
+- `routing4.*` — `Network`, `Node`, `Link`, `Route`, `Dijkstra`, `AStar`
 
 ## Branch Policy
 
