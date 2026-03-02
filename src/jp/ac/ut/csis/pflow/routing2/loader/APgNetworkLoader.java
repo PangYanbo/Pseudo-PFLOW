@@ -71,26 +71,18 @@ extends ANetworkLoader {
 
     @Override
     public Network load(Network network, QueryCondition[] conds) {
-        try (PgLoader loader = new PgLoader();){
-            try {
-                Throwable throwable = null;
-                Object var5_7 = null;
-                try (Connection con = loader.getConnection();){
-                    network = con == null ? null : this.load(con, conds);
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
+        try (PgLoader loader = new PgLoader()) {
+            Connection con = loader.getConnection();
+            if (con != null) {
+                try {
+                    network = this.load(con, conds);
+                } finally {
+                    try { con.close(); } catch (SQLException ignore) {}
                 }
             }
-            catch (SQLException exp) {
-                LOGGER.error("fail to load network", (Throwable)exp);
-                loader.close();
-            }
+        }
+        catch (Exception exp) {
+            LOGGER.error("fail to load network", exp);
         }
         return network;
     }
@@ -160,59 +152,35 @@ extends ANetworkLoader {
     public List<LonLat> fillGeometry(Connection con, List<Node> nodes) {
         ArrayList<LonLat> points = new ArrayList<LonLat>();
         try {
-            try {
-                Throwable throwable = null;
-                Object var5_7 = null;
-                try (Statement stmt = con.createStatement();){
-                    int N = nodes.size();
-                    Node n0 = nodes.get(0);
-                    int i = 1;
-                    while (i < N) {
-                        Node n1 = nodes.get(i);
-                        String sql = String.format("select %s,%s,%s from %s where (source='%s' and target='%s') OR (source='%s' and target='%s') ", SOURCE_NODE_COLUMN, TARGET_NODE_COLUMN, GEOMETRY_COLUMN, this.getTableName(), n0.getNodeID(), n1.getNodeID(), n1.getNodeID(), n0.getNodeID());
-                        try {
-                            Throwable throwable2 = null;
-                            Object var13_18 = null;
-                            try (ResultSet res = stmt.executeQuery(sql);){
-                                if (res.next()) {
-                                    String src = res.getString(SOURCE_NODE_COLUMN);
-                                    Geometry geom = ((PGgeometry)PGgeometry.class.cast(res.getObject(GEOMETRY_COLUMN))).getGeometry();
-                                    LineString line = null;
-                                    if (geom instanceof LineString) {
-                                        line = (LineString)LineString.class.cast(geom);
-                                    } else if (geom instanceof MultiLineString) {
-                                        line = ((MultiLineString)MultiLineString.class.cast(geom)).getLine(0);
-                                    }
-                                    if (src.equals(n0.getNodeID())) {
-                                        points.addAll(APgNetworkLoader.parseLineString(line));
-                                    } else {
-                                        points.addAll(APgNetworkLoader.parseLineString(line.reverse()));
-                                    }
-                                }
+            try (Statement stmt = con.createStatement()) {
+                int N = nodes.size();
+                Node n0 = nodes.get(0);
+                int i = 1;
+                while (i < N) {
+                    Node n1 = nodes.get(i);
+                    String sql = String.format("select %s,%s,%s from %s where (source='%s' and target='%s') OR (source='%s' and target='%s') ", SOURCE_NODE_COLUMN, TARGET_NODE_COLUMN, GEOMETRY_COLUMN, this.getTableName(), n0.getNodeID(), n1.getNodeID(), n1.getNodeID(), n0.getNodeID());
+                    try (ResultSet res = stmt.executeQuery(sql)) {
+                        if (res.next()) {
+                            String src = res.getString(SOURCE_NODE_COLUMN);
+                            Geometry geom = ((PGgeometry)PGgeometry.class.cast(res.getObject(GEOMETRY_COLUMN))).getGeometry();
+                            LineString line = null;
+                            if (geom instanceof LineString) {
+                                line = (LineString)LineString.class.cast(geom);
+                            } else if (geom instanceof MultiLineString) {
+                                line = ((MultiLineString)MultiLineString.class.cast(geom)).getLine(0);
                             }
-                            catch (Throwable throwable3) {
-                                if (throwable2 == null) {
-                                    throwable2 = throwable3;
-                                } else if (throwable2 != throwable3) {
-                                    throwable2.addSuppressed(throwable3);
-                                }
-                                throw throwable2;
+                            if (src.equals(n0.getNodeID())) {
+                                points.addAll(APgNetworkLoader.parseLineString(line));
+                            } else {
+                                points.addAll(APgNetworkLoader.parseLineString(line.reverse()));
                             }
                         }
-                        catch (SQLException exp) {
-                            LOGGER.error("fail to load geometry", (Throwable)exp);
-                        }
-                        n0 = n1;
-                        ++i;
                     }
-                }
-                catch (Throwable throwable4) {
-                    if (throwable == null) {
-                        throwable = throwable4;
-                    } else if (throwable != throwable4) {
-                        throwable.addSuppressed(throwable4);
+                    catch (SQLException exp) {
+                        LOGGER.error("fail to load geometry", (Throwable)exp);
                     }
-                    throw throwable;
+                    n0 = n1;
+                    ++i;
                 }
             }
             catch (OutOfMemoryError | SQLException exp) {

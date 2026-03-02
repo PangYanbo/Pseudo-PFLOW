@@ -108,71 +108,41 @@ extends APgNetworkLoader {
         if (network == null) {
             network = new Network(true, true);
         }
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbreader = new WKBReader();
-                        while (res.next()) {
-                            int gid = res.getInt(OSM_LINK_ID_COLUMN);
-                            String src = String.valueOf(res.getInt(OSM_SOURCE_NODE_COLUMN));
-                            String tgt = String.valueOf(res.getInt(OSM_TARGET_NODE_COLUMN));
-                            int clazz = res.getInt(OSM_CLASS_ID_COLUMN);
-                            double length = res.getDouble(OSM_LENGTH_COLUMN);
-                            double cst = res.getDouble(OSM_COST_COLUMN);
-                            double rcst = res.getDouble(OSM_REVERSE_COST_COLUMN);
-                            double fspeed = (double)res.getInt(OSM_FORWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
-                            int wayFlag = res.getInt(OSM_ONE_WAY_COLUMN);
-                            boolean oneway = wayFlag == -1 || wayFlag == 1;
-                            Geometry geom = wkbreader.read(res.getBytes("bgeom"));
-                            LineString line = null;
-                            if (geom instanceof LineString) {
-                                line = (LineString)LineString.class.cast(geom);
-                            } else if (geom instanceof MultiLineString) {
-                                line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
-                            }
-                            Point p0 = line.getStartPoint();
-                            Point p1 = line.getEndPoint();
-                            Node n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
-                            Node n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
-                            List<ILonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
-                            OsmLink link = new OsmLink(String.valueOf(gid), n0, n1, length, cst, rcst, oneway, clazz, fspeed, list);
-                            network.addLink(link);
-                        }
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbreader = new WKBReader();
+            while (res.next()) {
+                int gid = res.getInt(OSM_LINK_ID_COLUMN);
+                String src = String.valueOf(res.getInt(OSM_SOURCE_NODE_COLUMN));
+                String tgt = String.valueOf(res.getInt(OSM_TARGET_NODE_COLUMN));
+                int clazz = res.getInt(OSM_CLASS_ID_COLUMN);
+                double length = res.getDouble(OSM_LENGTH_COLUMN);
+                double cst = res.getDouble(OSM_COST_COLUMN);
+                double rcst = res.getDouble(OSM_REVERSE_COST_COLUMN);
+                double fspeed = (double)res.getInt(OSM_FORWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
+                int wayFlag = res.getInt(OSM_ONE_WAY_COLUMN);
+                boolean oneway = wayFlag == -1 || wayFlag == 1;
+                Geometry geom = wkbreader.read(res.getBytes("bgeom"));
+                LineString line = null;
+                if (geom instanceof LineString) {
+                    line = (LineString)LineString.class.cast(geom);
+                } else if (geom instanceof MultiLineString) {
+                    line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
-                }
-                stmt.close();
-                return network;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
+                Point p0 = line.getStartPoint();
+                Point p1 = line.getEndPoint();
+                Node n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
+                Node n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
+                List<ILonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
+                OsmLink link = new OsmLink(String.valueOf(gid), n0, n1, length, cst, rcst, oneway, clazz, fspeed, list);
+                network.addLink(link);
             }
         }
         catch (ParseException | OutOfMemoryError | SQLException exp) {
             exp.printStackTrace();
             throw new NetworkLoadingException("failed to load network", exp);
         }
+        return network;
     }
 }
 

@@ -24,29 +24,17 @@ public class DrmExample04 {
         long ts00 = System.nanoTime();
         PgConnector conn = new PgConnector();
         try {
-            try {
-                Throwable throwable = null;
-                Object var7_8 = null;
-                try (Connection con = conn.setDBName("lmdb").setPassword("kashiwa64307").connect();){
-                    Network network = new PgDrmBasicRoadLoader().setConnection(con).setTableName("drm3103.basic_links").setBounds(org.getLon(), org.getLat(), dst.getLon(), dst.getLat()).setGeometryFlag(true).load();
-                    long te00 = System.nanoTime();
-                    System.out.printf("%.09f(sec)\n", (double)(te00 - ts00) / 1.0E9);
-                    System.out.println(DrmExample04.getMemoryInfo());
-                    Dijkstra dijkstra = new Dijkstra(new LinkCost(DrmTransport.VEHICLE));
-                    long ts1 = System.nanoTime();
-                    Route route1 = dijkstra.getRoute(network, org.getLon(), org.getLat(), dst.getLon(), dst.getLat());
-                    long te1 = System.nanoTime();
-                    System.out.printf("%.09f(sec)\n", (double)(te1 - ts1) / 1.0E9);
-                    DrmExample04.printRoute(route1);
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+            try (Connection con = conn.setDBName("lmdb").setPassword("kashiwa64307").connect()) {
+                Network network = new PgDrmBasicRoadLoader().setConnection(con).setTableName("drm3103.basic_links").setBounds(org.getLon(), org.getLat(), dst.getLon(), dst.getLat()).setGeometryFlag(true).load();
+                long te00 = System.nanoTime();
+                System.out.printf("%.09f(sec)\n", (double)(te00 - ts00) / 1.0E9);
+                System.out.println(DrmExample04.getMemoryInfo());
+                Dijkstra dijkstra = new Dijkstra(new LinkCost(DrmTransport.VEHICLE));
+                long ts1 = System.nanoTime();
+                Route route1 = dijkstra.getRoute(network, org.getLon(), org.getLat(), dst.getLon(), dst.getLat());
+                long te1 = System.nanoTime();
+                System.out.printf("%.09f(sec)\n", (double)(te1 - ts1) / 1.0E9);
+                DrmExample04.printRoute(route1);
             }
             catch (SQLException exp) {
                 exp.printStackTrace();

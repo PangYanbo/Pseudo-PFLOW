@@ -90,71 +90,41 @@ extends APgNetworkLoader {
      */
     @Override
     public Network load(Network network, Connection con, String sql, boolean needGeom) {
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbreader = new WKBReader();
-                        while (res.next()) {
-                            int gid = res.getInt(RAIL_LINK_ID_COLUMN);
-                            String src = String.valueOf(res.getInt(RAIL_SOURCE_NODE_COLUMN));
-                            String tgt = String.valueOf(res.getInt(RAIL_TARGET_NODE_COLUMN));
-                            double cst = res.getDouble(RAIL_LEGNTH_COLUMN);
-                            double rcst = res.getDouble(RAIL_LEGNTH_COLUMN);
-                            String comp = res.getString(RAIL_COMPANY_COLUMN);
-                            String ln = res.getString(RAIL_LINE_COLUMN);
-                            String stn0 = res.getString(RAIL_SOURCE_STATION_COLUMN);
-                            String stn1 = res.getString(RAIL_TARGET_STATION_COLUMN);
-                            boolean way = false;
-                            Geometry geom = wkbreader.read(res.getBytes("bgeom"));
-                            LineString line = null;
-                            if (geom instanceof LineString) {
-                                line = (LineString)LineString.class.cast(geom);
-                            } else if (geom instanceof MultiLineString) {
-                                line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
-                            }
-                            Point p0 = line.getStartPoint();
-                            Point p1 = line.getEndPoint();
-                            List<LonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
-                            RailNode n0 = network.hasNode(src) ? (RailNode)RailNode.class.cast(network.getNode(src)) : new RailNode(src, p0.getX(), p0.getY(), comp, ln, stn0);
-                            RailNode n1 = network.hasNode(tgt) ? (RailNode)RailNode.class.cast(network.getNode(tgt)) : new RailNode(tgt, p1.getX(), p1.getY(), comp, ln, stn1);
-                            RailLink link = new RailLink(String.valueOf(gid), n0, n1, cst, rcst, way, comp, ln, list);
-                            network.addLink(link);
-                        }
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbreader = new WKBReader();
+            while (res.next()) {
+                int gid = res.getInt(RAIL_LINK_ID_COLUMN);
+                String src = String.valueOf(res.getInt(RAIL_SOURCE_NODE_COLUMN));
+                String tgt = String.valueOf(res.getInt(RAIL_TARGET_NODE_COLUMN));
+                double cst = res.getDouble(RAIL_LEGNTH_COLUMN);
+                double rcst = res.getDouble(RAIL_LEGNTH_COLUMN);
+                String comp = res.getString(RAIL_COMPANY_COLUMN);
+                String ln = res.getString(RAIL_LINE_COLUMN);
+                String stn0 = res.getString(RAIL_SOURCE_STATION_COLUMN);
+                String stn1 = res.getString(RAIL_TARGET_STATION_COLUMN);
+                boolean way = false;
+                Geometry geom = wkbreader.read(res.getBytes("bgeom"));
+                LineString line = null;
+                if (geom instanceof LineString) {
+                    line = (LineString)LineString.class.cast(geom);
+                } else if (geom instanceof MultiLineString) {
+                    line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
-                }
-                stmt.close();
-                return network;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
+                Point p0 = line.getStartPoint();
+                Point p1 = line.getEndPoint();
+                List<LonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
+                RailNode n0 = network.hasNode(src) ? (RailNode)RailNode.class.cast(network.getNode(src)) : new RailNode(src, p0.getX(), p0.getY(), comp, ln, stn0);
+                RailNode n1 = network.hasNode(tgt) ? (RailNode)RailNode.class.cast(network.getNode(tgt)) : new RailNode(tgt, p1.getX(), p1.getY(), comp, ln, stn1);
+                RailLink link = new RailLink(String.valueOf(gid), n0, n1, cst, rcst, way, comp, ln, list);
+                network.addLink(link);
             }
         }
         catch (ParseException | OutOfMemoryError | SQLException exp) {
             LOGGER.error("rail to load network", exp);
             return null;
         }
+        return network;
     }
 }
 

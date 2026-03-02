@@ -61,17 +61,17 @@ public class MeanShift {
                 mean = m;
             }
             mean = m;
-            List<LonLat> cluster = null;
+            List<T> cluster = null;
             for (LonLat p : result.keySet()) {
                 if (!(DistanceUtils.distance(mean, p) < e)) continue;
-                cluster = (List)result.get(p);
+                cluster = result.get(p);
                 break;
             }
             if (cluster == null) {
-                cluster = new ArrayList<LonLat>();
+                cluster = new ArrayList<T>();
                 result.put(mean, cluster);
             }
-            cluster.add((LonLat)data.get(i));
+            cluster.add(data.get(i));
             ++i;
         }
         return result;

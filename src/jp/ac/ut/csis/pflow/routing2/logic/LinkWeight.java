@@ -36,10 +36,8 @@ extends Dial.DialWeight {
             double sigma2 = entry.getValue();
             double sigma = sigma2 / 2.0;
             for (Node node : network.listNodes()) {
-                double d;
-                double d2 = 0.0;
-                d2 = DistanceUtils.distance(bspoint, node);
-                if (d > sigma2) continue;
+                double d2 = DistanceUtils.distance(bspoint, node);
+                if (d2 > sigma2) continue;
                 double w = 1.0 / Math.sqrt(Math.PI * 2 * sigma * sigma) * Math.exp(-1.0 * (d2 * d2) / (2.0 * sigma * sigma));
                 weights.put(node, weights.containsKey(node) ? (Double)weights.get(node) + w : w);
             }

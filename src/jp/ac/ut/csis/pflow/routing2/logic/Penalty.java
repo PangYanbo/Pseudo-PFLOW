@@ -98,7 +98,7 @@ extends ARoutingLogic {
                 return new Double(knot1.getCost()).compareTo(new Double(knot2.getCost()));
             }
         });
-        ARoutingLogic.Knot knot = new ARoutingLogic.Knot(this, depnode);
+        ARoutingLogic.Knot knot = new Knot(depnode);
         HashMap<Node, ARoutingLogic.Knot> knots = new HashMap<Node, ARoutingLogic.Knot>();
         knots.put(depnode, knot);
         queue.add(knot);
@@ -107,19 +107,17 @@ extends ARoutingLogic {
             knot.fix(true);
             if (knot.getNode().equals(arrnode)) break;
             for (Link link : knot.getNode().listOutLinks()) {
-                double cst;
-                double cost;
                 String lid = link.getLinkID();
                 boolean rev = knot.getNode().equals(link.getHeadNode());
                 Node n = rev ? link.getTailNode() : link.getHeadNode();
                 Link plink = this.getPreviousLink(knots, knot.getNode());
-                double d = cost = rev ? this.getLinkCost().getReverseCost(plink, knot.getNode(), link) : this.getLinkCost().getCost(plink, knot.getNode(), link);
-                double d2 = costs.containsKey(lid) ? costs.get(lid)[rev ? 1 : 0] : (cst = cost);
+                double cost = rev ? this.getLinkCost().getReverseCost(plink, knot.getNode(), link) : this.getLinkCost().getCost(plink, knot.getNode(), link);
+                double cst = costs.containsKey(lid) ? costs.get(lid)[rev ? 1 : 0] : cost;
                 if (knots.containsKey(n)) {
                     ((ARoutingLogic.Knot)knots.get(n)).update(knot, cst);
                     continue;
                 }
-                ARoutingLogic.Knot k = new ARoutingLogic.Knot(this, n, knot, cst);
+                ARoutingLogic.Knot k = new Knot(n, knot, cst);
                 knots.put(n, k);
                 queue.add(k);
             }

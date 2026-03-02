@@ -46,7 +46,7 @@ extends ARoutingLogic {
                 return new Double(knot1.getCost()).compareTo(new Double(knot2.getCost()));
             }
         });
-        ARoutingLogic.Knot knot = new ARoutingLogic.Knot(this, depnode);
+        ARoutingLogic.Knot knot = new Knot(depnode);
         HashMap<Node, ARoutingLogic.Knot> knots = new HashMap<Node, ARoutingLogic.Knot>();
         knots.put(depnode, knot);
         queue.add(knot);
@@ -64,7 +64,7 @@ extends ARoutingLogic {
                     ((ARoutingLogic.Knot)knots.get(n)).update(knot, cost);
                     continue;
                 }
-                ARoutingLogic.Knot k = new ARoutingLogic.Knot(this, n, knot, cost);
+                ARoutingLogic.Knot k = new Knot(n, knot, cost);
                 knots.put(n, k);
                 queue.add(k);
             }
@@ -105,7 +105,7 @@ extends ARoutingLogic {
                 return new Double(knot1.getCost()).compareTo(new Double(knot2.getCost()));
             }
         });
-        ARoutingLogic.Knot knot = new ARoutingLogic.Knot(this, depnode);
+        ARoutingLogic.Knot knot = new Knot(depnode);
         LinkedHashMap<Node, ARoutingLogic.Knot> knots = new LinkedHashMap<Node, ARoutingLogic.Knot>();
         knots.put(depnode, knot);
         queue.add(knot);
@@ -123,7 +123,7 @@ extends ARoutingLogic {
                     ((ARoutingLogic.Knot)knots.get(n)).update(knot, cst);
                     continue;
                 }
-                ARoutingLogic.Knot k = new ARoutingLogic.Knot(this, n, knot, cst);
+                ARoutingLogic.Knot k = new Knot(n, knot, cst);
                 knots.put(n, k);
                 queue.add(k);
             }

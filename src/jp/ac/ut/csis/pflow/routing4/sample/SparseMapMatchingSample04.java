@@ -34,35 +34,20 @@ public class SparseMapMatchingSample04 {
         pgLoader.setPassword("password").setDBName("dbname");
         AStar logic = new AStar(new AStarLinkCost(DrmTransport.VEHICLE));
         SparseMapMatching matchingLogic = new SparseMapMatching(logic);
-        try {
-            try {
-                Throwable throwable = null;
-                Object var9_11 = null;
-                try (Connection con = pgLoader.connect();){
-                    long t0 = System.currentTimeMillis();
-                    Network network = new PgSeiDrmLoader().setConnection(con).setTableName("seidrm2017.drm_32_table").setQueryConditions(conditions).setNetwork(new Network(true, false)).setGeometryFlag(false).load();
-                    long t1 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
-                    Route route = matchingLogic.setMatchingType(SparseMapMatching.MatchingType.NODE).runSparseMapMatching(network, points);
-                    long t2 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
-                    if (route == null) {
-                        System.out.println("fail to get result");
-                    }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+        try (Connection con = pgLoader.connect()) {
+            long t0 = System.currentTimeMillis();
+            Network network = new PgSeiDrmLoader().setConnection(con).setTableName("seidrm2017.drm_32_table").setQueryConditions(conditions).setNetwork(new Network(true, false)).setGeometryFlag(false).load();
+            long t1 = System.currentTimeMillis();
+            System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
+            Route route = matchingLogic.setMatchingType(SparseMapMatching.MatchingType.NODE).runSparseMapMatching(network, points);
+            long t2 = System.currentTimeMillis();
+            System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
+            if (route == null) {
+                System.out.println("fail to get result");
             }
-            catch (SQLException exp) {
-                exp.printStackTrace();
-                pgLoader.disconnect();
-            }
+        }
+        catch (SQLException exp) {
+            exp.printStackTrace();
         }
         finally {
             pgLoader.disconnect();

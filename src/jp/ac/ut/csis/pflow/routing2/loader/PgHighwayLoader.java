@@ -86,64 +86,33 @@ extends APgNetworkLoader {
      */
     @Override
     public Network load(Network network, Connection con, String sql, boolean needGeom) {
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbReader = new WKBReader();
-                        while (res.next()) {
-                            Node tgt;
-                            int linkId = res.getInt(HIGHWAY_LINK_ID_COLUMN);
-                            int lineSeq = res.getInt(HIGHWAY_LINE_SEQ_COLUMN);
-                            String lineName = res.getString(HIGHWAY_LINE_NAME_COLUMN);
-                            double length = res.getDouble(HIGHWAY_LEGNTH_COLUMN);
-                            LineString geom = (LineString)LineString.class.cast(wkbReader.read(res.getBytes("bgeom")));
-                            List<LonLat> line = GeometryUtils.createPointList(geom);
-                            Point p0 = geom.getStartPoint();
-                            Point p1 = geom.getEndPoint();
-                            HighwayNode srcNode = this.createSourceNode(res, p0);
-                            HighwayNode tgtNode = this.createTargetNode(res, p1);
-                            Node src = network.getNode(srcNode.getNodeID());
-                            if (src != null) {
-                                srcNode = (HighwayNode)HighwayNode.class.cast(src);
-                            }
-                            if ((tgt = network.getNode(tgtNode.getNodeID())) != null) {
-                                tgtNode = (HighwayNode)HighwayNode.class.cast(tgt);
-                            }
-                            HighwayLink link = new HighwayLink(String.valueOf(linkId), lineSeq, lineName, srcNode, tgtNode, length);
-                            if (needGeom) {
-                                link.setLineString(line);
-                            }
-                            network.addLink(link);
-                        }
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbReader = new WKBReader();
+            while (res.next()) {
+                Node tgt;
+                int linkId = res.getInt(HIGHWAY_LINK_ID_COLUMN);
+                int lineSeq = res.getInt(HIGHWAY_LINE_SEQ_COLUMN);
+                String lineName = res.getString(HIGHWAY_LINE_NAME_COLUMN);
+                double length = res.getDouble(HIGHWAY_LEGNTH_COLUMN);
+                LineString geom = (LineString)LineString.class.cast(wkbReader.read(res.getBytes("bgeom")));
+                List<LonLat> line = GeometryUtils.createPointList(geom);
+                Point p0 = geom.getStartPoint();
+                Point p1 = geom.getEndPoint();
+                HighwayNode srcNode = this.createSourceNode(res, p0);
+                HighwayNode tgtNode = this.createTargetNode(res, p1);
+                Node src = network.getNode(srcNode.getNodeID());
+                if (src != null) {
+                    srcNode = (HighwayNode)HighwayNode.class.cast(src);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
+                if ((tgt = network.getNode(tgtNode.getNodeID())) != null) {
+                    tgtNode = (HighwayNode)HighwayNode.class.cast(tgt);
                 }
-                stmt.close();
-                return network;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
+                HighwayLink link = new HighwayLink(String.valueOf(linkId), lineSeq, lineName, srcNode, tgtNode, length);
+                if (needGeom) {
+                    link.setLineString(line);
                 }
-                throw throwable;
+                network.addLink(link);
             }
         }
         catch (ParseException | SQLException exp) {

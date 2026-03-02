@@ -39,21 +39,9 @@ public class AllRoadConversionMain {
         File linkFile = new File(args[2]);
         File nodeFile = new File(args[3]);
         File stderr = new File(args[4]);
-        try {
-            Throwable throwable = null;
-            Object var7_9 = null;
-            try (PrintStream pw = new PrintStream(stderr);){
-                System.setErr(pw);
-                new AllRoadConversionMain().invoke(drm31dir, drm32dir, linkFile, nodeFile);
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
-            }
+        try (PrintStream pw = new PrintStream(stderr)) {
+            System.setErr(pw);
+            new AllRoadConversionMain().invoke(drm31dir, drm32dir, linkFile, nodeFile);
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -71,62 +59,38 @@ public class AllRoadConversionMain {
         });
         LinkedHashMap<String, Integer> nodelist = new LinkedHashMap<String, Integer>();
         StrTokenizer st = StrTokenizer.getTSVInstance();
-        try {
-            Throwable throwable = null;
-            Object var10_12 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(linkFile));){
-                bw.write(this.composeLinkOutputHeader());
-                bw.newLine();
-                File[] fileArray = files;
-                int n = files.length;
-                int n2 = 0;
-                while (n2 < n) {
-                    File f = fileArray[n2];
-                    System.out.println("\tload link file: " + f.getName());
-                    String mcode = this.extractMeshCode(f.getName());
-                    try {
-                        Throwable throwable2 = null;
-                        Object var18_23 = null;
-                        try (BufferedReader br = new BufferedReader(new FileReader(f));){
-                            String line = br.readLine();
-                            while ((line = br.readLine()) != null) {
-                                String[] tokens = st.reset(line).getTokenArray();
-                                int nodeNo01 = this.assignNodeNo(String.valueOf(mcode) + tokens[1], nodelist, bounds);
-                                int nodeNo02 = this.assignNodeNo(String.valueOf(mcode) + tokens[2], nodelist, bounds);
-                                String[] pretokens = tokens;
-                                Mesh mesh = new Mesh(mcode);
-                                List<LonLat> geom = this.composeGeometry(mesh, tokens, br);
-                                if (geom.isEmpty()) {
-                                    System.err.printf("emptry geometry: (%s) %s %s - %s %s\n", f.getName(), mcode, tokens[1], mcode, tokens[2]);
-                                    continue;
-                                }
-                                String stdout = this.composeLinkOutputString(mcode, pretokens, nodeNo01, nodeNo02, geom);
-                                bw.write(stdout);
-                                bw.newLine();
-                            }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(linkFile))) {
+            bw.write(this.composeLinkOutputHeader());
+            bw.newLine();
+            File[] fileArray = files;
+            int n = files.length;
+            int n2 = 0;
+            while (n2 < n) {
+                File f = fileArray[n2];
+                System.out.println("\tload link file: " + f.getName());
+                String mcode = this.extractMeshCode(f.getName());
+                try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                    String line = br.readLine();
+                    while ((line = br.readLine()) != null) {
+                        String[] tokens = st.reset(line).getTokenArray();
+                        int nodeNo01 = this.assignNodeNo(String.valueOf(mcode) + tokens[1], nodelist, bounds);
+                        int nodeNo02 = this.assignNodeNo(String.valueOf(mcode) + tokens[2], nodelist, bounds);
+                        String[] pretokens = tokens;
+                        Mesh mesh = new Mesh(mcode);
+                        List<LonLat> geom = this.composeGeometry(mesh, tokens, br);
+                        if (geom.isEmpty()) {
+                            System.err.printf("emptry geometry: (%s) %s %s - %s %s\n", f.getName(), mcode, tokens[1], mcode, tokens[2]);
+                            continue;
                         }
-                        catch (Throwable throwable3) {
-                            if (throwable2 == null) {
-                                throwable2 = throwable3;
-                            } else if (throwable2 != throwable3) {
-                                throwable2.addSuppressed(throwable3);
-                            }
-                            throw throwable2;
-                        }
+                        String stdout = this.composeLinkOutputString(mcode, pretokens, nodeNo01, nodeNo02, geom);
+                        bw.write(stdout);
+                        bw.newLine();
                     }
-                    catch (IOException exp) {
-                        exp.printStackTrace();
-                    }
-                    ++n2;
                 }
-            }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                } else if (throwable != throwable4) {
-                    throwable.addSuppressed(throwable4);
+                catch (IOException exp) {
+                    exp.printStackTrace();
                 }
-                throw throwable;
+                ++n2;
             }
         }
         catch (IOException exp) {
@@ -214,26 +178,14 @@ public class AllRoadConversionMain {
             File f = fileArray[n2];
             System.out.println("parsing " + f.getName());
             String meshcode = StringUtils.substringBeforeLast((String)f.getName(), (String)".");
-            try {
-                Throwable throwable = null;
-                Object var11_13 = null;
-                try (BufferedReader br = new BufferedReader(new FileReader(f));){
-                    String line = br.readLine();
-                    while ((line = br.readLine()) != null) {
-                        String[] tokens = st.reset(line).getTokenArray();
-                        String node0 = String.valueOf(meshcode) + tokens[1];
-                        String node1 = String.valueOf(tokens[5]) + tokens[6];
-                        if (node1.equals("0000000000")) continue;
-                        nodemap.put(node0, node1);
-                    }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
+            try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                String line = br.readLine();
+                while ((line = br.readLine()) != null) {
+                    String[] tokens = st.reset(line).getTokenArray();
+                    String node0 = String.valueOf(meshcode) + tokens[1];
+                    String node1 = String.valueOf(tokens[5]) + tokens[6];
+                    if (node1.equals("0000000000")) continue;
+                    nodemap.put(node0, node1);
                 }
             }
             catch (IOException exp) {
@@ -253,62 +205,38 @@ public class AllRoadConversionMain {
                 return f.getName().endsWith(".tsv");
             }
         });
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(nodefile));){
-                bw.write(String.valueOf(StringUtils.join(ParseDRM31.COLUMNS, (String)"\t")) + "\tmeshcode\tnodeNo\tewkt");
-                bw.newLine();
-                StrTokenizer st = StrTokenizer.getTSVInstance();
-                File[] fileArray = files;
-                int n = files.length;
-                int n2 = 0;
-                while (n2 < n) {
-                    File f = fileArray[n2];
-                    System.out.println("\tnode output " + f.getName());
-                    String meshcode = this.extractMeshCode(f.getName());
-                    Mesh mesh = new Mesh(meshcode);
-                    Rectangle2D.Double rect = mesh.getRect();
-                    try {
-                        Throwable throwable2 = null;
-                        Object var17_22 = null;
-                        try (BufferedReader br = new BufferedReader(new FileReader(f));){
-                            String line = br.readLine();
-                            while ((line = br.readLine()) != null) {
-                                Object[] tokens = st.reset(line).getTokenArray();
-                                int nameLen = Integer.parseInt(tokens[16]);
-                                tokens[17] = nameLen == 0 ? "" : tokens[17].substring(0, nameLen);
-                                String drmNodeNo = String.valueOf(meshcode) + tokens[1];
-                                int nodeNo = nodelist.get(drmNodeNo);
-                                double x = rect.getMinX() + ((RectangularShape)rect).getWidth() * (double)Integer.parseInt(tokens[2]) / 10000.0;
-                                double y = rect.getMinY() + ((RectangularShape)rect).getHeight() * (double)Integer.parseInt(tokens[3]) / 10000.0;
-                                String ewkt = String.format("SRID=4301;POINT(%.08f %.08f)", x, y);
-                                bw.write(String.format("%s\t%s\t%d\t%s", StringUtils.join((Object[])tokens, (String)"\t"), meshcode, nodeNo, ewkt));
-                                bw.newLine();
-                            }
-                        }
-                        catch (Throwable throwable3) {
-                            if (throwable2 == null) {
-                                throwable2 = throwable3;
-                            } else if (throwable2 != throwable3) {
-                                throwable2.addSuppressed(throwable3);
-                            }
-                            throw throwable2;
-                        }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(nodefile))) {
+            bw.write(String.valueOf(StringUtils.join(ParseDRM31.COLUMNS, (String)"\t")) + "\tmeshcode\tnodeNo\tewkt");
+            bw.newLine();
+            StrTokenizer st = StrTokenizer.getTSVInstance();
+            File[] fileArray = files;
+            int n = files.length;
+            int n2 = 0;
+            while (n2 < n) {
+                File f = fileArray[n2];
+                System.out.println("\tnode output " + f.getName());
+                String meshcode = this.extractMeshCode(f.getName());
+                Mesh mesh = new Mesh(meshcode);
+                Rectangle2D.Double rect = mesh.getRect();
+                try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                    String line = br.readLine();
+                    while ((line = br.readLine()) != null) {
+                        Object[] tokens = st.reset(line).getTokenArray();
+                        int nameLen = Integer.parseInt((String)tokens[16]);
+                        tokens[17] = nameLen == 0 ? "" : ((String)tokens[17]).substring(0, nameLen);
+                        String drmNodeNo = String.valueOf(meshcode) + tokens[1];
+                        int nodeNo = nodelist.get(drmNodeNo);
+                        double x = rect.getMinX() + ((RectangularShape)rect).getWidth() * (double)Integer.parseInt((String)tokens[2]) / 10000.0;
+                        double y = rect.getMinY() + ((RectangularShape)rect).getHeight() * (double)Integer.parseInt((String)tokens[3]) / 10000.0;
+                        String ewkt = String.format("SRID=4301;POINT(%.08f %.08f)", x, y);
+                        bw.write(String.format("%s\t%s\t%d\t%s", StringUtils.join((Object[])tokens, (String)"\t"), meshcode, nodeNo, ewkt));
+                        bw.newLine();
                     }
-                    catch (IOException exp) {
-                        exp.printStackTrace();
-                    }
-                    ++n2;
                 }
-            }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                } else if (throwable != throwable4) {
-                    throwable.addSuppressed(throwable4);
+                catch (IOException exp) {
+                    exp.printStackTrace();
                 }
-                throw throwable;
+                ++n2;
             }
         }
         catch (IOException exp) {

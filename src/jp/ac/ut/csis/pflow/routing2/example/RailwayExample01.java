@@ -24,41 +24,29 @@ import jp.ac.ut.csis.pflow.routing2.res.Route;
 public class RailwayExample01 {
     public static void main(String[] args) {
         try (PgLoader pgloader = new PgLoader("localhost", "pg_user", "pg_pass", "pg_dbname");){
-            try {
-                Throwable throwable = null;
-                Object var3_5 = null;
-                try (Connection con = pgloader.getConnection();){
-                    PgRailwayLoader loader = new PgRailwayLoader();
-                    Network network = loader.load(con, (QueryCondition)new RailwayQueryCondition(true));
-                    Node source = network.getNode("1132005");
-                    Node target = network.getNode("1130101");
-                    RailwayRouting logic = new RailwayRouting();
-                    Route route = logic.getRoute(network, source, target);
-                    if (route == null) {
-                        System.err.println("fail to get route");
-                        System.exit(1);
-                    }
-                    for (Node node : route.listNodes()) {
-                        System.out.println(node);
-                    }
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date t0 = sdf.parse("2016-09-06 10:00:00");
-                    Date t1 = sdf.parse("2016-09-06 11:00:00");
-                    List<LonLat> geomTrajectory = logic.fillRouteGeometry(network, route);
-                    List<STPoint> stTrajectory = TrajectoryUtils.interpolateUnitTime(geomTrajectory, t0, t1);
-                    int idx = 1;
-                    System.out.println("index,timestamp,lon,lat");
-                    for (STPoint point : stTrajectory) {
-                        System.out.printf("%d,%s,%f,%f\n", idx++, sdf.format(point.getTimeStamp()), point.getLon(), point.getLat());
-                    }
+            try (Connection con = pgloader.getConnection()) {
+                PgRailwayLoader loader = new PgRailwayLoader();
+                Network network = loader.load(con, (QueryCondition)new RailwayQueryCondition(true));
+                Node source = network.getNode("1132005");
+                Node target = network.getNode("1130101");
+                RailwayRouting logic = new RailwayRouting();
+                Route route = logic.getRoute(network, source, target);
+                if (route == null) {
+                    System.err.println("fail to get route");
+                    System.exit(1);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
+                for (Node node : route.listNodes()) {
+                    System.out.println(node);
+                }
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date t0 = sdf.parse("2016-09-06 10:00:00");
+                Date t1 = sdf.parse("2016-09-06 11:00:00");
+                List<LonLat> geomTrajectory = logic.fillRouteGeometry(network, route);
+                List<STPoint> stTrajectory = TrajectoryUtils.interpolateUnitTime(geomTrajectory, t0, t1);
+                int idx = 1;
+                System.out.println("index,timestamp,lon,lat");
+                for (STPoint point : stTrajectory) {
+                    System.out.printf("%d,%s,%f,%f\n", idx++, sdf.format(point.getTimeStamp()), point.getLon(), point.getLat());
                 }
             }
             catch (SQLException | ParseException exp) {

@@ -56,88 +56,18 @@ implements IPTReallocator {
             String column = stringArray[n2];
             String sql = String.format("SELECT gid AS gid,zonecode,%s,geom FROM %s WHERE zonecode='%s' ORDER by %s DESC", column, this._tablename, zonecode, column);
             LOGGER.debug(sql);
-            try {
-                Throwable throwable = null;
-                Object var11_13 = null;
-                try {
-                    ResultSet res;
-                    Statement stmt;
-                    Connection con;
-                    block25: {
-                        con = this._dbLoader.getConnection();
-                        try {
-                            block27: {
-                                stmt = con.createStatement();
-                                try {
-                                    block26: {
-                                        res = stmt.executeQuery(sql);
-                                        try {
-                                            double ratio = 0.0;
-                                            double rand = this._random.nextDouble();
-                                            while (res.next()) {
-                                                if (!(rand <= (ratio += res.getDouble(column)))) continue;
-                                                Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
-                                                output = new TelepointPOI(res.getString("gid"), res.getString("zonecode"), p.getX(), p.getY());
-                                                break;
-                                            }
-                                            if (output == null) break block25;
-                                            if (res == null) break block26;
-                                        }
-                                        catch (Throwable throwable2) {
-                                            if (res == null) throw throwable2;
-                                            res.close();
-                                            throw throwable2;
-                                        }
-                                        res.close();
-                                    }
-                                    if (stmt == null) break block27;
-                                }
-                                catch (Throwable throwable3) {
-                                    if (throwable == null) {
-                                        throwable = throwable3;
-                                    } else if (throwable != throwable3) {
-                                        throwable.addSuppressed(throwable3);
-                                    }
-                                    if (stmt == null) throw throwable;
-                                    stmt.close();
-                                    throw throwable;
-                                }
-                                stmt.close();
-                            }
-                            if (con == null) return output;
-                        }
-                        catch (Throwable throwable4) {
-                            if (throwable == null) {
-                                throwable = throwable4;
-                            } else if (throwable != throwable4) {
-                                throwable.addSuppressed(throwable4);
-                            }
-                            if (con == null) throw throwable;
-                            con.close();
-                            throw throwable;
-                        }
-                        con.close();
-                        return output;
-                    }
-                    if (res != null) {
-                        res.close();
-                    }
-                    if (stmt != null) {
-                        stmt.close();
-                    }
-                    if (con != null) {
-                        con.close();
-                    }
+            try (Connection con = this._dbLoader.getConnection();
+                 Statement stmt = con.createStatement();
+                 ResultSet res = stmt.executeQuery(sql)) {
+                double ratio = 0.0;
+                double rand = this._random.nextDouble();
+                while (res.next()) {
+                    if (!(rand <= (ratio += res.getDouble(column)))) continue;
+                    Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
+                    output = new TelepointPOI(res.getString("gid"), res.getString("zonecode"), p.getX(), p.getY());
+                    break;
                 }
-                catch (Throwable throwable5) {
-                    if (throwable == null) {
-                        throwable = throwable5;
-                        throw throwable;
-                    }
-                    if (throwable == throwable5) throw throwable;
-                    throwable.addSuppressed(throwable5);
-                    throw throwable;
-                }
+                if (output != null) return output;
             }
             catch (SQLException exp) {
                 LOGGER.error("fail to query DB", (Throwable)exp);

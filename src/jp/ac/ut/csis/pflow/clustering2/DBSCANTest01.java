@@ -30,29 +30,17 @@ public class DBSCANTest01 {
         List<ILonLatTime> points = DBSCANTest01.load(infile);
         System.out.println("num points:" + points.size());
         List<Cluster<ILonLatTime>> clusters = new DBSCAN(200.0, 3).clustering(points);
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));){
-                bw.write("clusterNo,time,lon,lat");
-                bw.newLine();
-                int No = 1;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                for (Cluster<ILonLatTime> cluster : clusters) {
-                    for (ILonLatTime point : cluster.listPoints()) {
-                        bw.write(String.format("%d,%s,%.08f,%.08f", No, sdf.format(point.getTimeStamp()), point.getLon(), point.getLat()));
-                        bw.newLine();
-                    }
-                    ++No;
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outfile))) {
+            bw.write("clusterNo,time,lon,lat");
+            bw.newLine();
+            int No = 1;
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            for (Cluster<ILonLatTime> cluster : clusters) {
+                for (ILonLatTime point : cluster.listPoints()) {
+                    bw.write(String.format("%d,%s,%.08f,%.08f", No, sdf.format(point.getTimeStamp()), point.getLon(), point.getLat()));
+                    bw.newLine();
                 }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+                ++No;
             }
         }
         catch (IOException exp) {
@@ -63,26 +51,14 @@ public class DBSCANTest01 {
     private static List<ILonLatTime> load(File inputFile) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         ArrayList<ILonLatTime> points = new ArrayList<ILonLatTime>();
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(inputFile));){
-                String line = br.readLine();
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = StrTokenizer.getCSVInstance((String)line).getTokenArray();
-                    Date ts = sdf.parse(tokens[4]);
-                    double lon = Double.parseDouble(tokens[5]);
-                    double lat = Double.parseDouble(tokens[6]);
-                    points.add(new LonLatTime(lon, lat, ts));
-                }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
+            String line = br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] tokens = StrTokenizer.getCSVInstance((String)line).getTokenArray();
+                Date ts = sdf.parse(tokens[4]);
+                double lon = Double.parseDouble(tokens[5]);
+                double lat = Double.parseDouble(tokens[6]);
+                points.add(new LonLatTime(lon, lat, ts));
             }
         }
         catch (IOException | ParseException exp) {

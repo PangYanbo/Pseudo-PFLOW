@@ -24,27 +24,27 @@ extends AParseDRM {
     @Override
     protected void init() {
         super.init();
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 2));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 1));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 6));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 1));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 5));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 2));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.K, 20));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.N, 2));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 40));
-        this.addFormatContent(new AParseDRM.FormatContent(this, AParseDRM.DataType.X, 102));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 2));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 1));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 6));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 1));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 5));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 2));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.K, 20));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.N, 2));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 40));
+        this.addFormatContent(new FormatContent(AParseDRM.DataType.X, 102));
     }
 
     @Override

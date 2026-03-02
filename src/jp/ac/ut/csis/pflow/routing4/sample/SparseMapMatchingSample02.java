@@ -43,35 +43,20 @@ public class SparseMapMatchingSample02 {
             matchingLogic = new SparseMapMatching(logic);
             network = null;
             try {
-                try {
-                    Throwable throwable = null;
-                    Object var8_11 = null;
-                    try (Connection con = pgLoader.connect();){
-                        long t0 = System.currentTimeMillis();
-                        network = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
-                        long t1 = System.currentTimeMillis();
-                        System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
-                    }
-                    catch (Throwable throwable2) {
-                        if (throwable == null) {
-                            throwable = throwable2;
-                        } else if (throwable != throwable2) {
-                            throwable.addSuppressed(throwable2);
-                        }
-                        throw throwable;
-                    }
+                try (Connection con = pgLoader.connect()) {
+                    long t0 = System.currentTimeMillis();
+                    network = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
+                    long t1 = System.currentTimeMillis();
+                    System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
                 }
                 catch (SQLException exp) {
                     exp.printStackTrace();
-                    pgLoader.disconnect();
                     break block17;
                 }
             }
-            catch (Throwable throwable) {
+            finally {
                 pgLoader.disconnect();
-                throw throwable;
             }
-            pgLoader.disconnect();
         }
         long t1 = System.currentTimeMillis();
         Route route = matchingLogic.runSparseMapMatching(network, points);
@@ -89,28 +74,16 @@ public class SparseMapMatchingSample02 {
 
     private static List<ILonLatTime> load(File inputFile) {
         ArrayList<ILonLatTime> points = new ArrayList<ILonLatTime>();
-        try {
-            Throwable throwable = null;
-            Object var3_5 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(inputFile));){
-                String line = br.readLine();
-                StrTokenizer st = StrTokenizer.getTSVInstance();
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = st.reset(line).getTokenArray();
-                    Date date = sdf.parse(tokens[1]);
-                    double lat = Double.parseDouble(tokens[2]);
-                    double lon = Double.parseDouble(tokens[3]);
-                    points.add(new LonLatTime(lon, lat, date));
-                }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
+            String line = br.readLine();
+            StrTokenizer st = StrTokenizer.getTSVInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            while ((line = br.readLine()) != null) {
+                String[] tokens = st.reset(line).getTokenArray();
+                Date date = sdf.parse(tokens[1]);
+                double lat = Double.parseDouble(tokens[2]);
+                double lon = Double.parseDouble(tokens[3]);
+                points.add(new LonLatTime(lon, lat, date));
             }
         }
         catch (IOException | ParseException exp) {

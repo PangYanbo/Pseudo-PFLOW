@@ -63,31 +63,19 @@ extends ANetworkLoader {
     @Override
     public Network load(Network network, QueryCondition[] qcs, boolean needGeom) {
         String line = null;
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(this._networkFile));){
-                if (this._hasHeader) {
-                    line = br.readLine();
-                }
-                while ((line = br.readLine()) != null) {
-                    Link link = this.parseLine(network, line, needGeom);
-                    if (link == null) continue;
-                    if (qcs != null && qcs.length > 0) {
-                        if (!this.validate(qcs, link)) continue;
-                        network.addLink(link);
-                        continue;
-                    }
-                    network.addLink(link);
-                }
+        try (BufferedReader br = new BufferedReader(new FileReader(this._networkFile))) {
+            if (this._hasHeader) {
+                line = br.readLine();
             }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
+            while ((line = br.readLine()) != null) {
+                Link link = this.parseLine(network, line, needGeom);
+                if (link == null) continue;
+                if (qcs != null && qcs.length > 0) {
+                    if (!this.validate(qcs, link)) continue;
+                    network.addLink(link);
+                    continue;
                 }
-                throw throwable;
+                network.addLink(link);
             }
         }
         catch (IOException exp) {

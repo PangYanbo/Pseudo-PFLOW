@@ -97,27 +97,15 @@ implements ICsvNetworkLoader {
             network = new Network();
             this.setNetwork(network);
         }
-        try {
-            Throwable throwable = null;
-            Object var5_7 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(this._networkFile));){
-                String line = null;
-                if (hasHeader) {
-                    line = br.readLine();
-                }
-                while ((line = br.readLine()) != null) {
-                    Link link = this.parseLine(line);
-                    if (!this.validate(link)) continue;
-                    network.addLink(link);
-                }
+        try (BufferedReader br = new BufferedReader(new FileReader(this._networkFile))) {
+            String line = null;
+            if (hasHeader) {
+                line = br.readLine();
             }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+            while ((line = br.readLine()) != null) {
+                Link link = this.parseLine(line);
+                if (!this.validate(link)) continue;
+                network.addLink(link);
             }
         }
         catch (IOException exp) {

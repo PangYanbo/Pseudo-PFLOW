@@ -31,13 +31,13 @@ public class DBSCAN {
 
     public <T extends ILonLat> List<Cluster<T>> clustering(Collection<T> points) {
         ArrayList<Cluster<T>> clusters = new ArrayList<Cluster<T>>();
-        HashMap<ILonLat, PointLabel> checkMap = new HashMap<ILonLat, PointLabel>();
-        for (ILonLat point : points) {
+        HashMap<T, PointLabel> checkMap = new HashMap<T, PointLabel>();
+        for (T point : points) {
             if (checkMap.containsKey(point)) continue;
-            List<ILonLat> neighbors = this.exploreNeighbors(point, points);
+            List<T> neighbors = this.exploreNeighbors(point, points);
             if (neighbors.size() >= this._minPts) {
                 checkMap.put(point, PointLabel.VALID);
-                Cluster<ILonLat> cluster = new Cluster<ILonLat>();
+                Cluster<T> cluster = new Cluster<T>();
                 cluster.addPoint(point);
                 clusters.add(this.expandCluster(cluster, neighbors, points, checkMap));
                 continue;
@@ -51,11 +51,11 @@ public class DBSCAN {
         ArrayList<T> cands = new ArrayList<T>(neighbors);
         int idx = 0;
         while (idx < cands.size()) {
-            List<ILonLat> seedNeighbors;
-            ILonLat cand = (ILonLat)cands.get(idx);
+            List<T> seedNeighbors;
+            T cand = cands.get(idx);
             PointLabel label = checkMap.get(cand);
             if (label == null && (seedNeighbors = this.exploreNeighbors(cand, points)).size() >= this._minPts) {
-                for (ILonLat seedNeighbor : seedNeighbors) {
+                for (T seedNeighbor : seedNeighbors) {
                     if (cands.contains(seedNeighbor)) continue;
                     cands.add(seedNeighbor);
                 }
@@ -70,8 +70,8 @@ public class DBSCAN {
     }
 
     private <T extends ILonLat> List<T> exploreNeighbors(T point, Collection<T> points) {
-        ArrayList<ILonLat> neighbors = new ArrayList<ILonLat>();
-        for (ILonLat p : points) {
+        ArrayList<T> neighbors = new ArrayList<T>();
+        for (T p : points) {
             if (point.equals(p) || !(DistanceUtils.distance(point, p) < this._eps)) continue;
             neighbors.add(p);
         }

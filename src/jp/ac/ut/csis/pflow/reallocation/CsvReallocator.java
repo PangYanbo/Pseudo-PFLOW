@@ -56,34 +56,22 @@ extends AReallocator {
 
     public void init(File poiTsvFile) {
         LOGGER.info(String.format("start loading POIs from %s", poiTsvFile.getAbsolutePath()));
-        try {
-            Throwable throwable = null;
-            Object var3_5 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(poiTsvFile));){
-                int N = 0;
-                this._spatialIndex = new STRtree();
-                String line = br.readLine();
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = StrTokenizer.getTSVInstance((String)line).getTokenArray();
-                    Geometry geom = GeometryUtils.parseWKB(tokens[7]);
-                    if (!(geom instanceof Point)) continue;
-                    Point point = (Point)Point.class.cast(geom);
-                    PreparedGeometry prepGeom = PreparedGeometryFactory.prepare((Geometry)point);
-                    Envelope envelope = prepGeom.getGeometry().getEnvelopeInternal();
-                    POI poi = new POI(tokens[0], tokens[3], Double.parseDouble(tokens[6]), point.getX(), point.getY());
-                    this._spatialIndex.insert(envelope, (Object)poi);
-                    ++N;
-                }
-                LOGGER.info(String.format("load %d POIs", N));
+        try (BufferedReader br = new BufferedReader(new FileReader(poiTsvFile))) {
+            int N = 0;
+            this._spatialIndex = new STRtree();
+            String line = br.readLine();
+            while ((line = br.readLine()) != null) {
+                String[] tokens = StrTokenizer.getTSVInstance((String)line).getTokenArray();
+                Geometry geom = GeometryUtils.parseWKB(tokens[7]);
+                if (!(geom instanceof Point)) continue;
+                Point point = (Point)Point.class.cast(geom);
+                PreparedGeometry prepGeom = PreparedGeometryFactory.prepare((Geometry)point);
+                Envelope envelope = prepGeom.getGeometry().getEnvelopeInternal();
+                POI poi = new POI(tokens[0], tokens[3], Double.parseDouble(tokens[6]), point.getX(), point.getY());
+                this._spatialIndex.insert(envelope, (Object)poi);
+                ++N;
             }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
-            }
+            LOGGER.info(String.format("load %d POIs", N));
         }
         catch (IOException exp) {
             LOGGER.error("fail to load POI data", (Throwable)exp);
@@ -148,9 +136,8 @@ extends AReallocator {
         double sum = 0.0;
         double ratio = this._random.nextDouble();
         for (POI poi : pois) {
-            double d;
             sum += poi.getArea() / sumArea;
-            if (!(d >= ratio)) continue;
+            if (!(sum >= ratio)) continue;
             return poi;
         }
         return pois.get(pois.size() - 1);

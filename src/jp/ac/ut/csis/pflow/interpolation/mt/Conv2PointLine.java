@@ -30,49 +30,18 @@ public class Conv2PointLine {
     public static void main(String[] args) {
         File inputFile = new File(args[0]);
         File outputFile = new File(args[1]);
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(inputFile));
-                try {
-                    try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));){
-                        String line = null;
-                        Conv2PointLine inst = new Conv2PointLine();
-                        while ((line = br.readLine()) != null) {
-                            List<String> tripStrs = inst.parse(line);
-                            for (String tripStr : tripStrs) {
-                                bw.write(tripStr);
-                                bw.newLine();
-                            }
-                        }
-                        System.out.println("valid IDs:" + inst._ids.size());
-                    }
-                    if (br == null) return;
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            String line = null;
+            Conv2PointLine inst = new Conv2PointLine();
+            while ((line = br.readLine()) != null) {
+                List<String> tripStrs = inst.parse(line);
+                for (String tripStr : tripStrs) {
+                    bw.write(tripStr);
+                    bw.newLine();
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (br == null) throw throwable;
-                    br.close();
-                    throw throwable;
-                }
-                br.close();
-                return;
             }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
-            }
+            System.out.println("valid IDs:" + inst._ids.size());
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -83,7 +52,6 @@ public class Conv2PointLine {
      * WARNING - void declaration
      */
     public List<String> parse(String line) {
-        void var13_16;
         String[] tokens = StrTokenizer.getCSVInstance((String)line).getTokenArray();
         String uid = tokens[0];
         String seq = tokens[2];
@@ -97,7 +65,7 @@ public class Conv2PointLine {
         int idx = 1;
         String[] stringArray = strs;
         int n = strs.length;
-        boolean n2 = false;
+        int var13_16 = 0;
         while (var13_16 < n) {
             String str = stringArray[var13_16];
             String[] vals = StringUtils.splitByWholeSeparatorPreserveAllTokens((String)str, (String)"|");

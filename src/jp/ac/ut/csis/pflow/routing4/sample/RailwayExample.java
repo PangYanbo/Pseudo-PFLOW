@@ -18,42 +18,27 @@ public class RailwayExample {
     public static void main(String[] args) throws IOException {
         PgConnector pgLoader = new PgConnector();
         pgLoader.setPassword("password").setDBName("db_name");
-        try {
-            try {
-                Throwable throwable = null;
-                Object var3_5 = null;
-                try (Connection con = pgLoader.connect();){
-                    Network network = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
-                    Dijkstra logic = new Dijkstra(new RailwayLinkCost());
-                    Node org = network.getNode("1131104");
-                    Node dst = network.getNode("1131218");
-                    System.out.println("dep:" + org);
-                    System.out.println("arr:" + dst);
-                    long ts = System.nanoTime();
-                    Route route = logic.getRoute(network, org, dst);
-                    long te = System.nanoTime();
-                    System.out.printf("%.09f(sec)\n", (double)(te - ts) / 1.0E9);
-                    if (route != null) {
-                        for (Node node : route.listNodes()) {
-                            System.out.println(node);
-                        }
-                    } else {
-                        System.out.println("failed");
-                    }
+        try (Connection con = pgLoader.connect()) {
+            Network network = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
+            Dijkstra logic = new Dijkstra(new RailwayLinkCost());
+            Node org = network.getNode("1131104");
+            Node dst = network.getNode("1131218");
+            System.out.println("dep:" + org);
+            System.out.println("arr:" + dst);
+            long ts = System.nanoTime();
+            Route route = logic.getRoute(network, org, dst);
+            long te = System.nanoTime();
+            System.out.printf("%.09f(sec)\n", (double)(te - ts) / 1.0E9);
+            if (route != null) {
+                for (Node node : route.listNodes()) {
+                    System.out.println(node);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+            } else {
+                System.out.println("failed");
             }
-            catch (SQLException exp) {
-                exp.printStackTrace();
-                pgLoader.disconnect();
-            }
+        }
+        catch (SQLException exp) {
+            exp.printStackTrace();
         }
         finally {
             pgLoader.disconnect();

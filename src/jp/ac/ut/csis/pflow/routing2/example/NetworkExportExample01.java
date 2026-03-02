@@ -23,22 +23,10 @@ public class NetworkExportExample01 {
     public static void main(String[] args) {
         File outputFile = new File(args[0]);
         try (PgLoader pgloader = new PgLoader();){
-            try {
-                Throwable throwable = null;
-                Object var4_6 = null;
-                try (Connection con = pgloader.getConnection();){
-                    PgOsmLoader osmLoader = new PgOsmLoader();
-                    Network roadNetwork = osmLoader.load(con, true);
-                    NetworkUtils.exportAsCsv(roadNetwork, outputFile);
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+            try (Connection con = pgloader.getConnection()) {
+                PgOsmLoader osmLoader = new PgOsmLoader();
+                Network roadNetwork = osmLoader.load(con, true);
+                NetworkUtils.exportAsCsv(roadNetwork, outputFile);
             }
             catch (SQLException exp) {
                 LOGGER.error("fail to load data from DB", (Throwable)exp);

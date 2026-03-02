@@ -39,21 +39,9 @@ public class BaseRoadConversionMain {
         File linkFile = new File(args[2]);
         File nodeFile = new File(args[3]);
         File stderr = new File(args[4]);
-        try {
-            Throwable throwable = null;
-            Object var7_9 = null;
-            try (PrintStream pw = new PrintStream(stderr);){
-                System.setErr(pw);
-                new BaseRoadConversionMain().invoke(drm21dir, drm22dir, linkFile, nodeFile);
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
-            }
+        try (PrintStream pw = new PrintStream(stderr)) {
+            System.setErr(pw);
+            new BaseRoadConversionMain().invoke(drm21dir, drm22dir, linkFile, nodeFile);
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -71,10 +59,7 @@ public class BaseRoadConversionMain {
         });
         LinkedHashMap<String, Integer> nodelist = new LinkedHashMap<String, Integer>();
         StrTokenizer st = StrTokenizer.getTSVInstance();
-        try {
-            Throwable throwable = null;
-            Object var10_12 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(linkFile));){
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(linkFile))) {
                 bw.write(this.composeLinkOutputHeader());
                 bw.newLine();
                 File[] fileArray = files;
@@ -84,10 +69,7 @@ public class BaseRoadConversionMain {
                     File f = fileArray[n2];
                     System.out.println("\tload link file: " + f.getName());
                     String mcode = this.extractMeshCode(f.getName());
-                    try {
-                        Throwable throwable2 = null;
-                        Object var18_23 = null;
-                        try (BufferedReader br = new BufferedReader(new FileReader(f));){
+                    try (BufferedReader br = new BufferedReader(new FileReader(f))) {
                             String line = br.readLine();
                             while ((line = br.readLine()) != null) {
                                 String[] tokens = st.reset(line).getTokenArray();
@@ -104,30 +86,12 @@ public class BaseRoadConversionMain {
                                 bw.write(stdout);
                                 bw.newLine();
                             }
-                        }
-                        catch (Throwable throwable3) {
-                            if (throwable2 == null) {
-                                throwable2 = throwable3;
-                            } else if (throwable2 != throwable3) {
-                                throwable2.addSuppressed(throwable3);
-                            }
-                            throw throwable2;
-                        }
                     }
                     catch (IOException exp) {
                         exp.printStackTrace();
                     }
                     ++n2;
                 }
-            }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                } else if (throwable != throwable4) {
-                    throwable.addSuppressed(throwable4);
-                }
-                throw throwable;
-            }
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -214,26 +178,14 @@ public class BaseRoadConversionMain {
             File f = fileArray[n2];
             System.out.println("parsing " + f.getName());
             String meshcode = StringUtils.substringBeforeLast((String)f.getName(), (String)".");
-            try {
-                Throwable throwable = null;
-                Object var11_13 = null;
-                try (BufferedReader br = new BufferedReader(new FileReader(f));){
-                    String line = br.readLine();
-                    while ((line = br.readLine()) != null) {
-                        String[] tokens = st.reset(line).getTokenArray();
-                        String node0 = String.valueOf(meshcode) + tokens[1];
-                        String node1 = String.valueOf(tokens[7]) + tokens[8];
-                        if (node1.equals("0000000000")) continue;
-                        nodemap.put(node0, node1);
-                    }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
+            try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                String line = br.readLine();
+                while ((line = br.readLine()) != null) {
+                    String[] tokens = st.reset(line).getTokenArray();
+                    String node0 = String.valueOf(meshcode) + tokens[1];
+                    String node1 = String.valueOf(tokens[7]) + tokens[8];
+                    if (node1.equals("0000000000")) continue;
+                    nodemap.put(node0, node1);
                 }
             }
             catch (IOException exp) {
@@ -253,10 +205,7 @@ public class BaseRoadConversionMain {
                 return f.getName().endsWith(".tsv");
             }
         });
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(nodefile));){
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(nodefile))) {
                 bw.write(String.valueOf(StringUtils.join(ParseDRM21.COLUMNS, (String)"\t")) + "\tmeshcode\tnodeNo\tewkt");
                 bw.newLine();
                 StrTokenizer st = StrTokenizer.getTSVInstance();
@@ -269,47 +218,26 @@ public class BaseRoadConversionMain {
                     String meshcode = this.extractMeshCode(f.getName());
                     Mesh mesh = new Mesh(meshcode);
                     Rectangle2D.Double rect = mesh.getRect();
-                    try {
-                        Throwable throwable2 = null;
-                        Object var17_22 = null;
-                        try (BufferedReader br = new BufferedReader(new FileReader(f));){
+                    try (BufferedReader br = new BufferedReader(new FileReader(f))) {
                             String line = br.readLine();
                             while ((line = br.readLine()) != null) {
                                 Object[] tokens = st.reset(line).getTokenArray();
-                                int nameLen = Integer.parseInt(tokens[34]);
-                                tokens[35] = nameLen == 0 ? "" : tokens[35].substring(0, nameLen);
+                                int nameLen = Integer.parseInt((String)tokens[34]);
+                                tokens[35] = nameLen == 0 ? "" : ((String)tokens[35]).substring(0, nameLen);
                                 String drmNodeNo = String.valueOf(meshcode) + tokens[1];
                                 int nodeNo = nodelist.get(drmNodeNo);
-                                double x = rect.getMinX() + ((RectangularShape)rect).getWidth() * (double)Integer.parseInt(tokens[3]) / 10000.0;
-                                double y = rect.getMinY() + ((RectangularShape)rect).getHeight() * (double)Integer.parseInt(tokens[4]) / 10000.0;
+                                double x = rect.getMinX() + ((RectangularShape)rect).getWidth() * (double)Integer.parseInt((String)tokens[3]) / 10000.0;
+                                double y = rect.getMinY() + ((RectangularShape)rect).getHeight() * (double)Integer.parseInt((String)tokens[4]) / 10000.0;
                                 String ewkt = String.format("SRID=4301;POINT(%.08f %.08f)", x, y);
                                 bw.write(String.format("%s\t%s\t%d\t%s", StringUtils.join((Object[])tokens, (String)"\t"), meshcode, nodeNo, ewkt));
                                 bw.newLine();
                             }
-                        }
-                        catch (Throwable throwable3) {
-                            if (throwable2 == null) {
-                                throwable2 = throwable3;
-                            } else if (throwable2 != throwable3) {
-                                throwable2.addSuppressed(throwable3);
-                            }
-                            throw throwable2;
-                        }
                     }
                     catch (IOException exp) {
                         exp.printStackTrace();
                     }
                     ++n2;
                 }
-            }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                } else if (throwable != throwable4) {
-                    throwable.addSuppressed(throwable4);
-                }
-                throw throwable;
-            }
         }
         catch (IOException exp) {
             exp.printStackTrace();

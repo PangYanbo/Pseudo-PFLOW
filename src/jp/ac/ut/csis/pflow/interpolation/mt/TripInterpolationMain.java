@@ -32,44 +32,14 @@ extends AMainThread {
         File outputDir = new File(args[2]);
         File stdoutLog = new File(outputDir, "stdout.log");
         File stderrLog = new File(outputDir, "stderr.log");
-        try {
-            Throwable throwable = null;
-            Object var7_9 = null;
-            try {
-                PrintStream stdout = new PrintStream(stdoutLog);
-                try {
-                    try (PrintStream stderr = new PrintStream(stderrLog);){
-                        System.setOut(stdout);
-                        System.setErr(stderr);
-                        long t0 = System.currentTimeMillis();
-                        new TripInterpolationMain(threadNum, inputFile, outputDir).invoke();
-                        long t1 = System.currentTimeMillis();
-                        System.out.printf("duration %.03f (sec)\n", (double)(t1 - t0) / 1000.0);
-                    }
-                    if (stdout != null) {
-                        stdout.close();
-                    }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stdout != null) {
-                        stdout.close();
-                    }
-                    throw throwable;
-                }
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                } else if (throwable != throwable3) {
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
-            }
+        try (PrintStream stdout = new PrintStream(stdoutLog);
+             PrintStream stderr = new PrintStream(stderrLog)) {
+            System.setOut(stdout);
+            System.setErr(stderr);
+            long t0 = System.currentTimeMillis();
+            new TripInterpolationMain(threadNum, inputFile, outputDir).invoke();
+            long t1 = System.currentTimeMillis();
+            System.out.printf("duration %.03f (sec)\n", (double)(t1 - t0) / 1000.0);
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -84,39 +54,27 @@ extends AMainThread {
 
     @Override
     protected void doMain() {
-        try {
-            Throwable throwable = null;
-            Object var2_4 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(this._inputFile));){
-                String line = null;
-                String prev = null;
-                int idx = 0;
-                ArrayList<ITrip> trips = new ArrayList<ITrip>();
-                while ((line = br.readLine()) != null) {
-                    ITrip trip = GpsTripParser.parse(line);
-                    String uid = trip.getUid();
-                    if (prev != null && !prev.equals(uid)) {
-                        File outputFile = this.prepraeOutputFile(this._outputDir, prev);
-                        this.append(new TripInterpolationThread(this, this._pgLoader, this._railwayNetwork, outputFile, trips, false));
-                        if (idx >= this.getThreadNum()) {
-                            idx = 0;
-                        }
-                        trips = new ArrayList();
+        try (BufferedReader br = new BufferedReader(new FileReader(this._inputFile))) {
+            String line = null;
+            String prev = null;
+            int idx = 0;
+            ArrayList<ITrip> trips = new ArrayList<ITrip>();
+            while ((line = br.readLine()) != null) {
+                ITrip trip = GpsTripParser.parse(line);
+                String uid = trip.getUid();
+                if (prev != null && !prev.equals(uid)) {
+                    File outputFile = this.prepraeOutputFile(this._outputDir, prev);
+                    this.append(new TripInterpolationThread(this, this._pgLoader, this._railwayNetwork, outputFile, trips, false));
+                    if (idx >= this.getThreadNum()) {
+                        idx = 0;
                     }
-                    trips.add(trip);
-                    prev = uid;
+                    trips = new ArrayList();
                 }
-                File outputFile = this.prepraeOutputFile(this._outputDir, prev);
-                this.append(new TripInterpolationThread(this, this._pgLoader, this._railwayNetwork, outputFile, trips, false));
+                trips.add(trip);
+                prev = uid;
             }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
-            }
+            File outputFile = this.prepraeOutputFile(this._outputDir, prev);
+            this.append(new TripInterpolationThread(this, this._pgLoader, this._railwayNetwork, outputFile, trips, false));
         }
         catch (IOException exp) {
             exp.printStackTrace();
@@ -136,20 +94,8 @@ extends AMainThread {
     public void init() {
         super.init();
         this._pgLoader = new PgLoader("localhost", "postgres", "kashiwa64307", "pflowdrm");
-        try {
-            Throwable throwable = null;
-            Object var2_4 = null;
-            try (Connection con = this._pgLoader.getConnection();){
-                this._railwayNetwork = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
-            }
+        try (Connection con = this._pgLoader.getConnection()) {
+            this._railwayNetwork = new PgRailwayLoader().setConnection(con).setTableName("rail.railway_network_v1").load();
         }
         catch (SQLException exp) {
             exp.printStackTrace();

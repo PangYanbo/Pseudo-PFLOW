@@ -172,23 +172,11 @@ public class TripInterpolation {
         ILonLatTime pe = trajectory.get(trajectory.size() - 1);
         Network roadNetwork = null;
         if (this._roadNetworkLoader instanceof IPgNetworkLoader) {
-            try {
-                Throwable throwable = null;
-                Object var7_9 = null;
-                try (Connection con = this._pgLoader.getConnection();){
-                    IQueryCondition[] conditions = new DrmQueryCondition[]{new DrmQueryCondition(this.createRect(ps), 3000.0), new DrmQueryCondition(this.createRect(trajectory), 3000.0, ROAD_TYPES), new DrmQueryCondition(this.createRect(pe), 3000.0)};
-                    IPgNetworkLoader l = (IPgNetworkLoader)this._roadNetworkLoader;
-                    roadNetwork = l.setConnection(con).setQueryConditions(conditions).load();
-                    roadNetwork._networkId = this._network_master.get(l.getTableName());
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+            try (Connection con = this._pgLoader.getConnection()) {
+                IQueryCondition[] conditions = new DrmQueryCondition[]{new DrmQueryCondition(this.createRect(ps), 3000.0), new DrmQueryCondition(this.createRect(trajectory), 3000.0, ROAD_TYPES), new DrmQueryCondition(this.createRect(pe), 3000.0)};
+                IPgNetworkLoader l = (IPgNetworkLoader)this._roadNetworkLoader;
+                roadNetwork = l.setConnection(con).setQueryConditions(conditions).load();
+                roadNetwork._networkId = this._network_master.get(l.getTableName());
             }
             catch (NullPointerException | SQLException exp) {
                 exp.printStackTrace();

@@ -114,77 +114,46 @@ extends APgNetworkLoader {
      */
     @Override
     public Network load(Network network, Connection con, String sql, boolean needGeom) {
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbReader = new WKBReader();
-                        while (res.next()) {
-                            Node tgtNode;
-                            int linkId = res.getInt(RAILWAY_LINK_ID_COLUMN);
-                            int source = res.getInt(RAILWAY_SOURCE_CODE_COLUMN);
-                            int target = res.getInt(RAILWAY_TARGET_CODE_COLUMN);
-                            int companyCode = res.getInt(RAILWAY_COMPANY_CODE_COLUMN);
-                            String companyName = res.getString(RAILWAY_COMPANY_NAME_COLUMN);
-                            int lineCode = res.getInt(RAILWAY_LINE_CODE_COLUMN);
-                            String lineName = res.getString(RAILWAY_LINE_NAME_COLUMN);
-                            String srcStationName = res.getString(RAILWAY_SOURCE_NAME_COLUMN);
-                            String tgtStationName = res.getString(RAILWAY_TARGET_NAME_COLUMN);
-                            int srcStationGroup = res.getInt(RAILWAY_SOURCE_GROUP_COLUMN);
-                            int tgtStationGroup = res.getInt(RAILWAY_TARGET_GROUP_COLUMN);
-                            int srcStationPref = res.getInt(RAILWAY_SOURCE_PREF_COLUMN);
-                            int tgtStationPref = res.getInt(RAILWAY_TARGET_PREF_COLUMN);
-                            double length = res.getDouble(RAILWAY_LEGNTH_COLUMN);
-                            if (length == 0.0) {
-                                length = 1.0;
-                            }
-                            LineString geom = (LineString)LineString.class.cast(wkbReader.read(res.getBytes("bgeom")));
-                            List<LonLat> line = GeometryUtils.createPointList(geom);
-                            Point p0 = geom.getStartPoint();
-                            Point p1 = geom.getEndPoint();
-                            Node srcNode = network.getNode(String.valueOf(source));
-                            if (srcNode == null) {
-                                srcNode = new RailwayNode(companyCode, lineCode, source, srcStationGroup, companyName, lineName, srcStationName, srcStationPref, p0.getX(), p0.getY());
-                            }
-                            if ((tgtNode = network.getNode(String.valueOf(target))) == null) {
-                                tgtNode = new RailwayNode(companyCode, lineCode, target, tgtStationGroup, companyName, lineName, tgtStationName, tgtStationPref, p1.getX(), p1.getY());
-                            }
-                            RailwayLink link = new RailwayLink(String.valueOf(linkId), lineCode, (RailwayNode)srcNode, (RailwayNode)tgtNode, length);
-                            if (needGeom) {
-                                link.setLineString(line);
-                            }
-                            network.addLink(link);
-                        }
-                        this.updateStationGroup(network);
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbReader = new WKBReader();
+            while (res.next()) {
+                Node tgtNode;
+                int linkId = res.getInt(RAILWAY_LINK_ID_COLUMN);
+                int source = res.getInt(RAILWAY_SOURCE_CODE_COLUMN);
+                int target = res.getInt(RAILWAY_TARGET_CODE_COLUMN);
+                int companyCode = res.getInt(RAILWAY_COMPANY_CODE_COLUMN);
+                String companyName = res.getString(RAILWAY_COMPANY_NAME_COLUMN);
+                int lineCode = res.getInt(RAILWAY_LINE_CODE_COLUMN);
+                String lineName = res.getString(RAILWAY_LINE_NAME_COLUMN);
+                String srcStationName = res.getString(RAILWAY_SOURCE_NAME_COLUMN);
+                String tgtStationName = res.getString(RAILWAY_TARGET_NAME_COLUMN);
+                int srcStationGroup = res.getInt(RAILWAY_SOURCE_GROUP_COLUMN);
+                int tgtStationGroup = res.getInt(RAILWAY_TARGET_GROUP_COLUMN);
+                int srcStationPref = res.getInt(RAILWAY_SOURCE_PREF_COLUMN);
+                int tgtStationPref = res.getInt(RAILWAY_TARGET_PREF_COLUMN);
+                double length = res.getDouble(RAILWAY_LEGNTH_COLUMN);
+                if (length == 0.0) {
+                    length = 1.0;
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
+                LineString geom = (LineString)LineString.class.cast(wkbReader.read(res.getBytes("bgeom")));
+                List<LonLat> line = GeometryUtils.createPointList(geom);
+                Point p0 = geom.getStartPoint();
+                Point p1 = geom.getEndPoint();
+                Node srcNode = network.getNode(String.valueOf(source));
+                if (srcNode == null) {
+                    srcNode = new RailwayNode(companyCode, lineCode, source, srcStationGroup, companyName, lineName, srcStationName, srcStationPref, p0.getX(), p0.getY());
                 }
-                stmt.close();
-                return network;
+                if ((tgtNode = network.getNode(String.valueOf(target))) == null) {
+                    tgtNode = new RailwayNode(companyCode, lineCode, target, tgtStationGroup, companyName, lineName, tgtStationName, tgtStationPref, p1.getX(), p1.getY());
+                }
+                RailwayLink link = new RailwayLink(String.valueOf(linkId), lineCode, (RailwayNode)srcNode, (RailwayNode)tgtNode, length);
+                if (needGeom) {
+                    link.setLineString(line);
+                }
+                network.addLink(link);
             }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
-            }
+            this.updateStationGroup(network);
         }
         catch (ParseException | SQLException exp) {
             exp.printStackTrace();
@@ -193,16 +162,16 @@ extends APgNetworkLoader {
     }
 
     private void updateStationGroup(Network network) {
-        TreeMap groups = new TreeMap();
+        TreeMap<Integer, Set<RailwayNode>> groups = new TreeMap<Integer, Set<RailwayNode>>();
         for (Node node : network.listNodes()) {
             RailwayNode ekiNode = (RailwayNode)RailwayNode.class.cast(node);
             int groupCode = ekiNode.getStationGroupCode();
             if (!groups.containsKey(groupCode)) {
-                groups.put(groupCode, new HashSet());
+                groups.put(groupCode, new HashSet<RailwayNode>());
             }
-            ((Set)groups.get(groupCode)).add(ekiNode);
+            groups.get(groupCode).add(ekiNode);
         }
-        for (Set val : groups.values()) {
+        for (Set<RailwayNode> val : groups.values()) {
             for (RailwayNode ekiNode : val) {
                 ekiNode.setGroupNodes(val);
             }

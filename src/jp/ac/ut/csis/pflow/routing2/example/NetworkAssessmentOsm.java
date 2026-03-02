@@ -28,59 +28,33 @@ public class NetworkAssessmentOsm {
     private static final Logger LOGGER = LogManager.getLogger(NetworkAssessmentOsm.class);
 
     public static void main(String[] args) {
-        try (PgLoader pgloader = new PgLoader();){
-            try {
-                Throwable throwable = null;
-                Object var3_5 = null;
-                try (Connection con = pgloader.getConnection();){
-                    File outfile = new File(args[0]);
-                    PgOsmLoader osmLoader = new PgOsmLoader();
-                    Network roadNetwork = osmLoader.load(new Network(false, false), con, new OsmQueryCondition(null, null));
-                    LOGGER.debug("[before]" + roadNetwork.listLinks().size());
-                    List<Set<Node>> results = new NetworkAssessment().validateIsolation(roadNetwork);
-                    try {
-                        Throwable throwable2 = null;
-                        Object var10_15 = null;
-                        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));){
-                            bw.write("groupNo\tnodeId\tnodeNum\twkt");
-                            bw.newLine();
-                            int groupno = 1;
-                            for (Set<Node> set : results) {
-                                for (Node node : set) {
-                                    bw.write(String.format("%d\t%s\t%d\tSRID=4326;POINT(%.06f %.06f)", groupno, node.getNodeID(), set.size(), node.getLon(), node.getLat()));
-                                    bw.newLine();
-                                }
-                                LOGGER.debug(String.format("[Group %d] has %d nodes", groupno, set.size()));
-                                ++groupno;
-                            }
-                        }
-                        catch (Throwable throwable3) {
-                            if (throwable2 == null) {
-                                throwable2 = throwable3;
-                            } else if (throwable2 != throwable3) {
-                                throwable2.addSuppressed(throwable3);
-                            }
-                            throw throwable2;
-                        }
+        try (PgLoader pgloader = new PgLoader();
+             Connection con = pgloader.getConnection()) {
+            File outfile = new File(args[0]);
+            PgOsmLoader osmLoader = new PgOsmLoader();
+            Network roadNetwork = osmLoader.load(new Network(false, false), con, new OsmQueryCondition(null, null));
+            LOGGER.debug("[before]" + roadNetwork.listLinks().size());
+            List<Set<Node>> results = new NetworkAssessment().validateIsolation(roadNetwork);
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(outfile))) {
+                bw.write("groupNo\tnodeId\tnodeNum\twkt");
+                bw.newLine();
+                int groupno = 1;
+                for (Set<Node> set : results) {
+                    for (Node node : set) {
+                        bw.write(String.format("%d\t%s\t%d\tSRID=4326;POINT(%.06f %.06f)", groupno, node.getNodeID(), set.size(), node.getLon(), node.getLat()));
+                        bw.newLine();
                     }
-                    catch (IOException exp) {
-                        exp.printStackTrace();
-                    }
-                    LOGGER.debug("[after]" + roadNetwork.listLinks().size());
-                }
-                catch (Throwable throwable4) {
-                    if (throwable == null) {
-                        throwable = throwable4;
-                    } else if (throwable != throwable4) {
-                        throwable.addSuppressed(throwable4);
-                    }
-                    throw throwable;
+                    LOGGER.debug(String.format("[Group %d] has %d nodes", groupno, set.size()));
+                    ++groupno;
                 }
             }
-            catch (SQLException exp) {
+            catch (IOException exp) {
                 exp.printStackTrace();
-                pgloader.close();
             }
+            LOGGER.debug("[after]" + roadNetwork.listLinks().size());
+        }
+        catch (SQLException exp) {
+            exp.printStackTrace();
         }
     }
 }

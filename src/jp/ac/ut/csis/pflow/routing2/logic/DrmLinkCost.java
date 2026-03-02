@@ -76,9 +76,7 @@ extends LinkCost {
             return this._mode;
         }
 
-        public static Mode valueOf(String string) {
-            return Enum.valueOf(Mode.class, string);
-        }
+
     }
 }
 

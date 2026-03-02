@@ -29,33 +29,21 @@ public class DrmExample01 {
         long te00 = System.nanoTime();
         System.err.printf("%.09f(sec)\n", (double)(te00 - ts00) / 1.0E9);
         System.err.println(DrmExample01.getMemoryInfo());
-        try {
-            Throwable throwable = null;
-            Object var8_8 = null;
-            try (BufferedReader br = Files.newBufferedReader(inputFile.toPath());){
-                Dijkstra dijkstra = new Dijkstra(new LinkCost(DrmTransport.WALK));
-                int no = 1;
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = StringUtils.splitPreserveAllTokens((String)line, (String)",");
-                    double x0 = Double.parseDouble(tokens[0].trim());
-                    double y0 = Double.parseDouble(tokens[1].trim());
-                    double x1 = Double.parseDouble(tokens[2].trim());
-                    double y1 = Double.parseDouble(tokens[3].trim());
-                    long ts1 = System.nanoTime();
-                    Route route1 = dijkstra.getRoute(network, x0, y0, x1, y1);
-                    long te1 = System.nanoTime();
-                    System.err.printf("%.09f(sec)\n", (double)(te1 - ts1) / 1.0E9);
-                    DrmExample01.printRoute(no++, route1);
-                }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+        try (BufferedReader br = Files.newBufferedReader(inputFile.toPath())) {
+            Dijkstra dijkstra = new Dijkstra(new LinkCost(DrmTransport.WALK));
+            int no = 1;
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                String[] tokens = StringUtils.splitPreserveAllTokens((String)line, (String)",");
+                double x0 = Double.parseDouble(tokens[0].trim());
+                double y0 = Double.parseDouble(tokens[1].trim());
+                double x1 = Double.parseDouble(tokens[2].trim());
+                double y1 = Double.parseDouble(tokens[3].trim());
+                long ts1 = System.nanoTime();
+                Route route1 = dijkstra.getRoute(network, x0, y0, x1, y1);
+                long te1 = System.nanoTime();
+                System.err.printf("%.09f(sec)\n", (double)(te1 - ts1) / 1.0E9);
+                DrmExample01.printRoute(no++, route1);
             }
         }
         catch (IOException exp) {

@@ -30,33 +30,21 @@ public class NetworkUtils {
     }
 
     public static void exportAsCsv(Network network, File outputFile, ACsvNetworkLoader.Delimiter delim) {
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));){
-                String delimString = delim.equals((Object)ACsvNetworkLoader.Delimiter.TSV) ? "\t" : ",";
-                Object[] header = new String[]{"linkId", "tailNode", "headNode", "cost", "rCost", "geom"};
-                bw.write(StringUtils.join((Object[])header, (String)delimString));
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            String delimString = delim.equals((Object)ACsvNetworkLoader.Delimiter.TSV) ? "\t" : ",";
+            Object[] header = new String[]{"linkId", "tailNode", "headNode", "cost", "rCost", "geom"};
+            bw.write(StringUtils.join((Object[])header, (String)delimString));
+            bw.newLine();
+            for (Link link : network.listLinks()) {
+                String linkId = link.getLinkID();
+                Node tailNode = link.getTailNode();
+                Node headNode = link.getHeadNode();
+                double cost = link.getCost();
+                double rCost = link.getReverseCost();
+                String wkt = link.hasGeometry() ? TrajectoryUtils.asWKT(link.getLineString()) : TrajectoryUtils.asWKT(Arrays.asList(tailNode, headNode));
+                Object[] tokens = new String[]{linkId, tailNode.getNodeID(), headNode.getNodeID(), String.valueOf(cost), String.valueOf(rCost), wkt};
+                bw.write(StringUtils.join((Object[])tokens, (String)delimString));
                 bw.newLine();
-                for (Link link : network.listLinks()) {
-                    String linkId = link.getLinkID();
-                    Node tailNode = link.getTailNode();
-                    Node headNode = link.getHeadNode();
-                    double cost = link.getCost();
-                    double rCost = link.getReverseCost();
-                    String wkt = link.hasGeometry() ? TrajectoryUtils.asWKT(link.getLineString()) : TrajectoryUtils.asWKT(Arrays.asList(tailNode, headNode));
-                    Object[] tokens = new String[]{linkId, tailNode.getNodeID(), headNode.getNodeID(), String.valueOf(cost), String.valueOf(rCost), wkt};
-                    bw.write(StringUtils.join((Object[])tokens, (String)delimString));
-                    bw.newLine();
-                }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
             }
         }
         catch (IOException exp) {

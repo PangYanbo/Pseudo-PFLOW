@@ -98,82 +98,51 @@ extends APgNetworkLoader {
      */
     @Override
     public Network load(Network network, Connection con, String sql, boolean needGeom) {
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbreader = new WKBReader();
-                        while (res.next()) {
-                            Node n1;
-                            Node n0;
-                            List<LonLat> list;
-                            int gid = res.getInt(DRM_LINK_ID_COLUMN);
-                            String src = String.valueOf(res.getInt(DRM_SOURCE_NODE_COLUMN));
-                            String tgt = String.valueOf(res.getInt(DRM_TARGET_NODE_COLUMN));
-                            double cst = res.getDouble("length");
-                            double rcst = res.getDouble("length");
-                            int reg = res.getInt(DRM_REGULATION_COLUMN);
-                            int type = res.getInt(DRM_ROAD_TYPE_COLUMN);
-                            int width = res.getInt(DRM_ROAD_WIDTH_COLUMN);
-                            int lanes = res.getInt(DRM_LANE_NUM_COLUMN);
-                            boolean way = DrmLink.isOneway(reg);
-                            Geometry geom = wkbreader.read(res.getBytes("bgeom"));
-                            LineString line = null;
-                            if (geom instanceof LineString) {
-                                line = (LineString)LineString.class.cast(geom);
-                            } else if (geom instanceof MultiLineString) {
-                                line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
-                            }
-                            Point p0 = line.getStartPoint();
-                            Point p1 = line.getEndPoint();
-                            List<LonLat> list2 = list = needGeom ? GeometryUtils.createPointList(line) : null;
-                            if (DrmLink.isOnewayAndReverse(reg)) {
-                                n0 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
-                                Node node = n1 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
-                                if (list != null && !list.isEmpty()) {
-                                    Collections.reverse(list);
-                                }
-                            } else {
-                                n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
-                                n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
-                            }
-                            DrmLink link = new DrmLink(String.valueOf(gid), n0, n1, cst, cst, rcst, way, type, width, lanes, list);
-                            network.addLink(link);
-                        }
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbreader = new WKBReader();
+            while (res.next()) {
+                Node n0;
+                Node n1;
+                int gid = res.getInt(DRM_LINK_ID_COLUMN);
+                String src = String.valueOf(res.getInt(DRM_SOURCE_NODE_COLUMN));
+                String tgt = String.valueOf(res.getInt(DRM_TARGET_NODE_COLUMN));
+                double cst = res.getDouble("length");
+                double rcst = res.getDouble("length");
+                int reg = res.getInt(DRM_REGULATION_COLUMN);
+                int type = res.getInt(DRM_ROAD_TYPE_COLUMN);
+                int width = res.getInt(DRM_ROAD_WIDTH_COLUMN);
+                int lanes = res.getInt(DRM_LANE_NUM_COLUMN);
+                boolean way = DrmLink.isOneway(reg);
+                Geometry geom = wkbreader.read(res.getBytes("bgeom"));
+                LineString line = null;
+                if (geom instanceof LineString) {
+                    line = (LineString)LineString.class.cast(geom);
+                } else if (geom instanceof MultiLineString) {
+                    line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
+                Point p0 = line.getStartPoint();
+                Point p1 = line.getEndPoint();
+                List<LonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
+                if (DrmLink.isOnewayAndReverse(reg)) {
+                    n0 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
+                    n1 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
+                    if (list != null && !list.isEmpty()) {
+                        Collections.reverse(list);
                     }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
-                }
-                stmt.close();
-                return network;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
                 } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
+                    n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
+                    n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
                 }
-                throw throwable;
+                DrmLink link = new DrmLink(String.valueOf(gid), n0, n1, cst, cst, rcst, way, type, width, lanes, list);
+                network.addLink(link);
             }
         }
         catch (ParseException | OutOfMemoryError | SQLException exp) {
             exp.printStackTrace();
             return null;
         }
+        return network;
     }
 }
 

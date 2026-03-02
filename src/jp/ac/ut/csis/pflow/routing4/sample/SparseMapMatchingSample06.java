@@ -34,39 +34,27 @@ public class SparseMapMatchingSample06 {
         Dijkstra logic = new Dijkstra(new LinkCost(DrmTransport.WALK));
         SparseMapMatching matchingLogic = new SparseMapMatching(logic);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        try {
-            Throwable throwable = null;
-            Object var8_10 = null;
-            try (BufferedReader br = Files.newBufferedReader(inputFile.toPath());){
-                int no = 1;
-                String line = null;
-                ArrayList<LonLatTime> points = new ArrayList<LonLatTime>();
-                while ((line = br.readLine()) != null) {
-                    try {
-                        String[] tokens = StringUtils.splitPreserveAllTokens((String)line, (String)",");
-                        Date t = sdf.parse(tokens[0].trim());
-                        double x = Double.parseDouble(tokens[2].trim());
-                        double y = Double.parseDouble(tokens[1].trim());
-                        points.add(new LonLatTime(x, y, t));
-                    }
-                    catch (ParseException exp) {
-                        exp.printStackTrace();
-                    }
+        try (BufferedReader br = Files.newBufferedReader(inputFile.toPath())) {
+            int no = 1;
+            String line = null;
+            ArrayList<LonLatTime> points = new ArrayList<LonLatTime>();
+            while ((line = br.readLine()) != null) {
+                try {
+                    String[] tokens = StringUtils.splitPreserveAllTokens((String)line, (String)",");
+                    Date t = sdf.parse(tokens[0].trim());
+                    double x = Double.parseDouble(tokens[2].trim());
+                    double y = Double.parseDouble(tokens[1].trim());
+                    points.add(new LonLatTime(x, y, t));
                 }
-                long tn0 = System.nanoTime();
-                Route route = matchingLogic.setMatchingType(SparseMapMatching.MatchingType.LINK).setSearchRange(3000.0).runSparseMapMatching(network, points);
-                long tn1 = System.nanoTime();
-                System.err.printf("%.09f(sec)\n", (double)(tn1 - tn0) / 1.0E9);
-                SparseMapMatchingSample06.printRoute(no++, route);
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
+                catch (ParseException exp) {
+                    exp.printStackTrace();
                 }
-                throw throwable;
             }
+            long tn0 = System.nanoTime();
+            Route route = matchingLogic.setMatchingType(SparseMapMatching.MatchingType.LINK).setSearchRange(3000.0).runSparseMapMatching(network, points);
+            long tn1 = System.nanoTime();
+            System.err.printf("%.09f(sec)\n", (double)(tn1 - tn0) / 1.0E9);
+            SparseMapMatchingSample06.printRoute(no++, route);
         }
         catch (IOException exp) {
             exp.printStackTrace();

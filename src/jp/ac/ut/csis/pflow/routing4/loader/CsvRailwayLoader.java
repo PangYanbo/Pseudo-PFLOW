@@ -98,16 +98,16 @@ extends ACsvNetworkLoader {
     }
 
     private Network updateStationGroup(Network network) {
-        TreeMap groups = new TreeMap();
+        TreeMap<Integer, Set<RailwayNode>> groups = new TreeMap<Integer, Set<RailwayNode>>();
         for (Node node : network.listNodes()) {
             RailwayNode ekiNode = (RailwayNode)RailwayNode.class.cast(node);
             int groupCode = ekiNode.getStationGroupCode();
             if (!groups.containsKey(groupCode)) {
-                groups.put(groupCode, new HashSet());
+                groups.put(groupCode, new HashSet<RailwayNode>());
             }
-            ((Set)groups.get(groupCode)).add(ekiNode);
+            groups.get(groupCode).add(ekiNode);
         }
-        for (Set val : groups.values()) {
+        for (Set<RailwayNode> val : groups.values()) {
             for (RailwayNode ekiNode : val) {
                 ekiNode.setGroupNodes(val);
             }

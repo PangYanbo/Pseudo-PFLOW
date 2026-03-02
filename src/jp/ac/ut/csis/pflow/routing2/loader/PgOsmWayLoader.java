@@ -71,83 +71,52 @@ extends APgNetworkLoader {
      */
     @Override
     public Network load(Network network, Connection con, String sql, boolean needGeom) {
-        try {
-            Throwable throwable = null;
-            Object var6_8 = null;
-            try {
-                Statement stmt = con.createStatement();
-                try {
-                    try (ResultSet res = stmt.executeQuery(sql);){
-                        WKBReader wkbreader = new WKBReader();
-                        while (res.next()) {
-                            Node n1;
-                            Node n0;
-                            List<LonLat> list;
-                            String gid = String.valueOf(res.getLong(OSM_LINK_ID_COLUMN));
-                            String src = String.valueOf(res.getInt(OSM_SOURCE_NODE_COLUMN));
-                            String tgt = String.valueOf(res.getInt(OSM_TARGET_NODE_COLUMN));
-                            int clazz = res.getInt(OSM_CLASS_ID_COLUMN);
-                            double length = res.getDouble(OSM_LENGTH_COLUMN);
-                            double cst = res.getDouble(OSM_COST_COLUMN);
-                            double rcst = res.getDouble(OSM_REVERSE_COST_COLUMN);
-                            double fspeed = (double)res.getInt(OSM_FORWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
-                            double bspeed = (double)res.getInt(OSM_BACKWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
-                            int wayFlag = res.getInt(OSM_ONE_WAY_COLUMN);
-                            Geometry geom = wkbreader.read(res.getBytes("bgeom"));
-                            LineString line = null;
-                            if (geom instanceof LineString) {
-                                line = (LineString)LineString.class.cast(geom);
-                            } else if (geom instanceof MultiLineString) {
-                                line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
-                            }
-                            Point p0 = line.getStartPoint();
-                            Point p1 = line.getEndPoint();
-                            boolean oneway = wayFlag == -1 || wayFlag == 1;
-                            List<LonLat> list2 = list = needGeom ? GeometryUtils.createPointList(line) : null;
-                            if (wayFlag == -1) {
-                                n0 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
-                                Node node = n1 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
-                                if (list != null && !list.isEmpty()) {
-                                    Collections.reverse(list);
-                                }
-                            } else {
-                                n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
-                                n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
-                            }
-                            OsmWay link = new OsmWay(gid, n0, n1, clazz, length, cst, rcst, fspeed, bspeed, oneway, list);
-                            network.addLink(link);
-                        }
-                    }
-                    if (stmt == null) return network;
+        try (Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            WKBReader wkbreader = new WKBReader();
+            while (res.next()) {
+                Node n1;
+                Node n0;
+                String gid = String.valueOf(res.getLong(OSM_LINK_ID_COLUMN));
+                String src = String.valueOf(res.getInt(OSM_SOURCE_NODE_COLUMN));
+                String tgt = String.valueOf(res.getInt(OSM_TARGET_NODE_COLUMN));
+                int clazz = res.getInt(OSM_CLASS_ID_COLUMN);
+                double length = res.getDouble(OSM_LENGTH_COLUMN);
+                double cst = res.getDouble(OSM_COST_COLUMN);
+                double rcst = res.getDouble(OSM_REVERSE_COST_COLUMN);
+                double fspeed = (double)res.getInt(OSM_FORWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
+                double bspeed = (double)res.getInt(OSM_BACKWARD_SPEED_COLUMN) * 1000.0 / 3600.0;
+                int wayFlag = res.getInt(OSM_ONE_WAY_COLUMN);
+                Geometry geom = wkbreader.read(res.getBytes("bgeom"));
+                LineString line = null;
+                if (geom instanceof LineString) {
+                    line = (LineString)LineString.class.cast(geom);
+                } else if (geom instanceof MultiLineString) {
+                    line = (LineString)((MultiLineString)MultiLineString.class.cast(geom)).getGeometryN(0);
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
+                Point p0 = line.getStartPoint();
+                Point p1 = line.getEndPoint();
+                boolean oneway = wayFlag == -1 || wayFlag == 1;
+                List<LonLat> list = needGeom ? GeometryUtils.createPointList(line) : null;
+                if (wayFlag == -1) {
+                    n0 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
+                    n1 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
+                    if (list != null && !list.isEmpty()) {
+                        Collections.reverse(list);
                     }
-                    if (stmt == null) throw throwable;
-                    stmt.close();
-                    throw throwable;
-                }
-                stmt.close();
-                return network;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
                 } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
+                    n0 = network.hasNode(src) ? network.getNode(src) : new Node(src, p0.getX(), p0.getY());
+                    n1 = network.hasNode(tgt) ? network.getNode(tgt) : new Node(tgt, p1.getX(), p1.getY());
                 }
-                throw throwable;
+                OsmWay link = new OsmWay(gid, n0, n1, clazz, length, cst, rcst, fspeed, bspeed, oneway, list);
+                network.addLink(link);
             }
         }
         catch (ParseException | OutOfMemoryError | SQLException exp) {
             exp.printStackTrace();
             return null;
         }
+        return network;
     }
 }
 

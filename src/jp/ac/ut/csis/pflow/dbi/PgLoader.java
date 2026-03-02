@@ -14,7 +14,7 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class PgLoader {
+public final class PgLoader implements AutoCloseable {
     private static final Logger LOGGER = LogManager.getLogger(PgLoader.class);
     public static final String PGSQL_DRIVER = "org.postgresql.Driver";
     public static final String DB_HOST = System.getProperty("pflow.pgloader.host", "localhost");

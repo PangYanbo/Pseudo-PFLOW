@@ -31,25 +31,12 @@ extends ANetworkLoader {
 
     @Override
     public Network load(Network network, QueryCondition[] conds, boolean needGeom) {
-        try (PgLoader loader = new PgLoader();){
-            try {
-                Throwable throwable = null;
-                Object var6_8 = null;
-                try (Connection con = loader.getConnection();){
-                    network = con == null ? null : this.load(con, conds, needGeom);
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
-                }
+        try (PgLoader loader = new PgLoader()) {
+            try (Connection con = loader.getConnection()) {
+                network = con == null ? null : this.load(con, conds, needGeom);
             }
-            catch (SQLException exp) {
+            catch (Exception exp) {
                 exp.printStackTrace();
-                loader.close();
             }
         }
         return network;

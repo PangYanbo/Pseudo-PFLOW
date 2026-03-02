@@ -41,35 +41,23 @@ public class SparseMapMatchingSample01 {
         AStar logic = new AStar(new AStarLinkCost(DrmTransport.VEHICLE));
         SparseMapMatching matchingLogic = new SparseMapMatching(logic);
         try {
-            try {
-                Throwable throwable = null;
-                Object var9_11 = null;
-                try (Connection con = pgloader.getConnection();){
-                    long t0 = System.currentTimeMillis();
-                    DrmQueryCondition queryCondition = new DrmQueryCondition(rect, 3000.0);
-                    Network network = drmLoader.load(con, (QueryCondition)queryCondition);
-                    long t1 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
-                    Route route = matchingLogic.runSparseMapMatching(network, points);
-                    long t2 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
-                    if (route == null) {
-                        System.out.println("fail to get result");
-                    } else {
-                        int idx = 0;
-                        List<LonLat> traj = route.getTrajectory();
-                        for (LonLat point : traj) {
-                            System.out.printf("%04d,%.06f,%.06f\n", idx++, point.getLon(), point.getLat());
-                        }
+            try (Connection con = pgloader.getConnection()) {
+                long t0 = System.currentTimeMillis();
+                DrmQueryCondition queryCondition = new DrmQueryCondition(rect, 3000.0);
+                Network network = drmLoader.load(con, (QueryCondition)queryCondition);
+                long t1 = System.currentTimeMillis();
+                System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
+                Route route = matchingLogic.runSparseMapMatching(network, points);
+                long t2 = System.currentTimeMillis();
+                System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
+                if (route == null) {
+                    System.out.println("fail to get result");
+                } else {
+                    int idx = 0;
+                    List<LonLat> traj = route.getTrajectory();
+                    for (LonLat point : traj) {
+                        System.out.printf("%04d,%.06f,%.06f\n", idx++, point.getLon(), point.getLat());
                     }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
                 }
             }
             catch (SQLException exp) {
@@ -84,28 +72,16 @@ public class SparseMapMatchingSample01 {
 
     private static List<STPoint> load(File inputFile) {
         ArrayList<STPoint> points = new ArrayList<STPoint>();
-        try {
-            Throwable throwable = null;
-            Object var3_5 = null;
-            try (BufferedReader br = new BufferedReader(new FileReader(inputFile));){
-                String line = br.readLine();
-                StrTokenizer st = StrTokenizer.getTSVInstance();
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                while ((line = br.readLine()) != null) {
-                    String[] tokens = st.reset(line).getTokenArray();
-                    Date date = sdf.parse(tokens[1]);
-                    double lat = Double.parseDouble(tokens[2]);
-                    double lon = Double.parseDouble(tokens[3]);
-                    points.add(new STPoint(date, lon, lat));
-                }
-            }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw throwable;
+        try (BufferedReader br = new BufferedReader(new FileReader(inputFile))) {
+            String line = br.readLine();
+            StrTokenizer st = StrTokenizer.getTSVInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            while ((line = br.readLine()) != null) {
+                String[] tokens = st.reset(line).getTokenArray();
+                Date date = sdf.parse(tokens[1]);
+                double lat = Double.parseDouble(tokens[2]);
+                double lon = Double.parseDouble(tokens[3]);
+                points.add(new STPoint(date, lon, lat));
             }
         }
         catch (IOException | ParseException exp) {

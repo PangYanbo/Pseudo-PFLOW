@@ -84,7 +84,7 @@ public final class DistanceUtils {
             p0 = p1;
             ++i;
         }
-        return new AbstractMap.SimpleEntry<Object, Double>(res, dis);
+        return new AbstractMap.SimpleEntry<ILonLat, Double>(res, dis);
     }
 
     public static <T extends ILonLat, S extends ILonLat> double hausdorff(Collection<T> setA, Collection<S> setB) {

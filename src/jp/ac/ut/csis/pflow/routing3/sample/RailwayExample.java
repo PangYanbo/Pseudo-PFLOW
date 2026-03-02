@@ -17,36 +17,24 @@ import jp.ac.ut.csis.pflow.routing3.res.Route;
 public class RailwayExample {
     public static void main(String[] args) throws IOException {
         try (PgLoader pgloader = new PgLoader("localhost", "pg_user", "pg_pass", "db_name");){
-            try {
-                Throwable throwable = null;
-                Object var3_5 = null;
-                try (Connection con = pgloader.getConnection();){
-                    PgRailwayLoader railLoader = new PgRailwayLoader("rail.railway_network_v1");
-                    Network network = railLoader.load(con);
-                    Dijkstra logic = new Dijkstra(new RailwayLinkCost());
-                    Node org = network.getNode("1131104");
-                    Node dst = network.getNode("1131218");
-                    System.out.println("dep:" + org);
-                    System.out.println("arr:" + dst);
-                    long ts = System.nanoTime();
-                    Route route = logic.getRoute(network, org, dst);
-                    long te = System.nanoTime();
-                    System.out.printf("%.09f(sec)\n", (double)(te - ts) / 1.0E9);
-                    if (route != null) {
-                        for (Node node : route.listNodes()) {
-                            System.out.println(node);
-                        }
-                    } else {
-                        System.out.println("failed");
+            try (Connection con = pgloader.getConnection()) {
+                PgRailwayLoader railLoader = new PgRailwayLoader("rail.railway_network_v1");
+                Network network = railLoader.load(con);
+                Dijkstra logic = new Dijkstra(new RailwayLinkCost());
+                Node org = network.getNode("1131104");
+                Node dst = network.getNode("1131218");
+                System.out.println("dep:" + org);
+                System.out.println("arr:" + dst);
+                long ts = System.nanoTime();
+                Route route = logic.getRoute(network, org, dst);
+                long te = System.nanoTime();
+                System.out.printf("%.09f(sec)\n", (double)(te - ts) / 1.0E9);
+                if (route != null) {
+                    for (Node node : route.listNodes()) {
+                        System.out.println(node);
                     }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
+                } else {
+                    System.out.println("failed");
                 }
             }
             catch (SQLException exp) {

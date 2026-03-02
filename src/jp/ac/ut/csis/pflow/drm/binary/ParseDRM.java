@@ -120,54 +120,23 @@ public class ParseDRM {
      * Lifted jumps to return sites
      */
     protected static void convert(AParseDRM parser, File infile, File outfile) {
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try {
-                FileInputStream stream = new FileInputStream(infile);
-                try {
-                    try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter((OutputStream)new FileOutputStream(outfile, false), "UTF-8"));){
-                        bw.write(StringUtils.join(parser.listColumns(), (String)"\t"));
-                        bw.newLine();
-                        int len = parser.getRecordSize();
-                        while (stream.available() > 0) {
-                            byte[] buf = new byte[len];
-                            int i = 0;
-                            while (i < len) {
-                                buf[i] = (byte)stream.read();
-                                ++i;
-                            }
-                            List<String> record = parser.parseRecord(buf);
-                            if (record == null) continue;
-                            String stdout = StringUtils.join(record, (String)"\t");
-                            bw.write(stdout);
-                            bw.newLine();
-                        }
-                    }
-                    if (stream == null) return;
+        try (FileInputStream stream = new FileInputStream(infile);
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter((OutputStream)new FileOutputStream(outfile, false), "UTF-8"))) {
+            bw.write(StringUtils.join(parser.listColumns(), (String)"\t"));
+            bw.newLine();
+            int len = parser.getRecordSize();
+            while (stream.available() > 0) {
+                byte[] buf = new byte[len];
+                int i = 0;
+                while (i < len) {
+                    buf[i] = (byte)stream.read();
+                    ++i;
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (stream == null) throw throwable;
-                    stream.close();
-                    throw throwable;
-                }
-                stream.close();
-                return;
-            }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
+                List<String> record = parser.parseRecord(buf);
+                if (record == null) continue;
+                String stdout = StringUtils.join(record, (String)"\t");
+                bw.write(stdout);
+                bw.newLine();
             }
         }
         catch (IOException exp) {

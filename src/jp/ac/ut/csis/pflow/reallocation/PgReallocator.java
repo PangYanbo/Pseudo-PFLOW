@@ -96,73 +96,25 @@ extends AReallocator {
      */
     private POI reallocateRandom(String sql, LonLat point) {
         POI output = null;
-        try {
-            Throwable throwable = null;
-            Object var5_7 = null;
-            try {
-                Connection con = this._dbLoader.getConnection();
-                try {
-                    block22: {
-                        Statement stmt = con.createStatement();
-                        try {
-                            block21: {
-                                try (ResultSet res = stmt.executeQuery(sql);){
-                                    ArrayList<POI> pois = new ArrayList<POI>();
-                                    while (true) {
-                                        if (!res.next()) {
-                                            if (!pois.isEmpty()) break;
-                                            output = new POI(null, point.getLon(), point.getLat());
-                                            break block21;
-                                        }
-                                        Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
-                                        pois.add(new POI(res.getString("gid"), res.getString("name"), res.getDouble("area"), p.getX(), p.getY()));
-                                    }
-                                    output = (POI)pois.get(this._random.nextInt(pois.size()));
-                                }
-                            }
-                            if (stmt == null) break block22;
-                        }
-                        catch (Throwable throwable2) {
-                            if (throwable == null) {
-                                throwable = throwable2;
-                            } else if (throwable != throwable2) {
-                                throwable.addSuppressed(throwable2);
-                            }
-                            if (stmt == null) throw throwable;
-                            stmt.close();
-                            throw throwable;
-                        }
-                        stmt.close();
-                    }
-                    if (con == null) return output;
-                }
-                catch (Throwable throwable3) {
-                    if (throwable == null) {
-                        throwable = throwable3;
-                    } else if (throwable != throwable3) {
-                        throwable.addSuppressed(throwable3);
-                    }
-                    if (con == null) throw throwable;
-                    con.close();
-                    throw throwable;
-                }
-                con.close();
-                return output;
+        try (Connection con = this._dbLoader.getConnection();
+             Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            ArrayList<POI> pois = new ArrayList<POI>();
+            while (res.next()) {
+                Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
+                pois.add(new POI(res.getString("gid"), res.getString("name"), res.getDouble("area"), p.getX(), p.getY()));
             }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                    throw throwable;
-                }
-                if (throwable == throwable4) throw throwable;
-                throwable.addSuppressed(throwable4);
-                throw throwable;
+            if (pois.isEmpty()) {
+                output = new POI(null, point.getLon(), point.getLat());
+            } else {
+                output = (POI)pois.get(this._random.nextInt(pois.size()));
             }
         }
         catch (SQLException exp) {
             LOGGER.error("fail to query DB", (Throwable)exp);
             return null;
         }
+        return output;
     }
 
     private POI reallocateAreaProb(LonLat point, double radius) {
@@ -186,73 +138,28 @@ extends AReallocator {
      */
     private POI reallocateAreaProb(String sql, LonLat point) {
         POI output = null;
-        try {
-            Throwable throwable = null;
-            Object var5_7 = null;
-            try {
-                Connection con = this._dbLoader.getConnection();
-                try {
-                    block23: {
-                        Statement stmt = con.createStatement();
-                        try {
-                            try (ResultSet res = stmt.executeQuery(sql);){
-                                double rand = this._random.nextDouble();
-                                while (res.next()) {
-                                    double r = res.getDouble("ratio");
-                                    if (r >= rand) {
-                                        Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
-                                        output = new POI(res.getString("gid"), res.getString("name"), res.getDouble("area"), p.getX(), p.getY());
-                                        break;
-                                    }
-                                    rand -= r;
-                                }
-                                if (output == null) {
-                                    output = new POI(null, point.getLon(), point.getLat());
-                                }
-                            }
-                            if (stmt == null) break block23;
-                        }
-                        catch (Throwable throwable2) {
-                            if (throwable == null) {
-                                throwable = throwable2;
-                            } else if (throwable != throwable2) {
-                                throwable.addSuppressed(throwable2);
-                            }
-                            if (stmt == null) throw throwable;
-                            stmt.close();
-                            throw throwable;
-                        }
-                        stmt.close();
-                    }
-                    if (con == null) return output;
+        try (Connection con = this._dbLoader.getConnection();
+             Statement stmt = con.createStatement();
+             ResultSet res = stmt.executeQuery(sql)) {
+            double rand = this._random.nextDouble();
+            while (res.next()) {
+                double r = res.getDouble("ratio");
+                if (r >= rand) {
+                    Point p = (Point)Point.class.cast(((PGgeometry)PGgeometry.class.cast(res.getObject("geom"))).getGeometry());
+                    output = new POI(res.getString("gid"), res.getString("name"), res.getDouble("area"), p.getX(), p.getY());
+                    break;
                 }
-                catch (Throwable throwable3) {
-                    if (throwable == null) {
-                        throwable = throwable3;
-                    } else if (throwable != throwable3) {
-                        throwable.addSuppressed(throwable3);
-                    }
-                    if (con == null) throw throwable;
-                    con.close();
-                    throw throwable;
-                }
-                con.close();
-                return output;
+                rand -= r;
             }
-            catch (Throwable throwable4) {
-                if (throwable == null) {
-                    throwable = throwable4;
-                    throw throwable;
-                }
-                if (throwable == throwable4) throw throwable;
-                throwable.addSuppressed(throwable4);
-                throw throwable;
+            if (output == null) {
+                output = new POI(null, point.getLon(), point.getLat());
             }
         }
         catch (SQLException exp) {
             LOGGER.error("fail to query DB", (Throwable)exp);
             return null;
         }
+        return output;
     }
 }
 

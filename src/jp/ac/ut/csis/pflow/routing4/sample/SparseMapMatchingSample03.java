@@ -37,33 +37,21 @@ public class SparseMapMatchingSample03 {
         Dijkstra logic = new Dijkstra(new LinkCost(DrmTransport.VEHICLE));
         SparseMapMatching matchingLogic = new SparseMapMatching(logic);
         try {
-            try {
-                Throwable throwable = null;
-                Object var10_12 = null;
-                try (Connection con = pgLoader.connect();){
-                    long t0 = System.currentTimeMillis();
-                    Network network = new PgSeiDrmLoader().setConnection(con).setTableName("seidrm2017.drm_32_table").setQueryConditions(conditions).setGeometryFlag(true).load();
-                    long t1 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
-                    Route route = matchingLogic.runSparseMapMatching(network, points);
-                    long t2 = System.currentTimeMillis();
-                    System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
-                    if (route == null) {
-                        System.out.println("fail to get result");
-                    } else {
-                        int idx = 0;
-                        for (Node node : route.listNodes()) {
-                            System.out.printf("%04d,%s,%.06f,%.06f\n", idx++, node.getNodeID(), node.getLon(), node.getLat());
-                        }
+            try (Connection con = pgLoader.connect()) {
+                long t0 = System.currentTimeMillis();
+                Network network = new PgSeiDrmLoader().setConnection(con).setTableName("seidrm2017.drm_32_table").setQueryConditions(conditions).setGeometryFlag(true).load();
+                long t1 = System.currentTimeMillis();
+                System.out.printf("time duration: %.03f(sec)\n", (double)(t1 - t0) / 1000.0);
+                Route route = matchingLogic.runSparseMapMatching(network, points);
+                long t2 = System.currentTimeMillis();
+                System.out.printf("time duration: %.03f(sec)\n", (double)(t2 - t1) / 1000.0);
+                if (route == null) {
+                    System.out.println("fail to get result");
+                } else {
+                    int idx = 0;
+                    for (Node node : route.listNodes()) {
+                        System.out.printf("%04d,%s,%.06f,%.06f\n", idx++, node.getNodeID(), node.getLon(), node.getLat());
                     }
-                }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    throw throwable;
                 }
             }
             catch (SQLException exp) {

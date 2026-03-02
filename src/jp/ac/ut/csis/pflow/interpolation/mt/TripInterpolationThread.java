@@ -134,27 +134,14 @@ extends ARunningThread {
             }
             output.add(out);
         }
-        try {
-            Throwable throwable = null;
-            iterator = null;
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(this._outputFile));){
-                int idx = 1;
-                String uid = prev.getUid();
-                String date = new SimpleDateFormat("yyyy-MM-dd").format(prev.getStartTime());
-                for (List list : output) {
-                    String line = String.format("%s,%s,%d,%s", uid, date, idx++, StringUtils.join((Collection)list, (String)","));
-                    writer.write(line);
-                    writer.newLine();
-                }
-            }
-            catch (Throwable throwable2) {
-                void var3_9;
-                if (throwable == null) {
-                    Throwable throwable3 = throwable2;
-                } else if (throwable != throwable2) {
-                    throwable.addSuppressed(throwable2);
-                }
-                throw var3_9;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(this._outputFile))) {
+            int idx = 1;
+            String uid = prev.getUid();
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(prev.getStartTime());
+            for (List list : output) {
+                String line = String.format("%s,%s,%d,%s", uid, date, idx++, StringUtils.join((Collection)list, (String)","));
+                writer.write(line);
+                writer.newLine();
             }
         }
         catch (IOException iOException) {
@@ -178,42 +165,29 @@ extends ARunningThread {
      */
     private List<String> interpolateRoad(Move trip) {
         List<ILonLatTime> trajectory = trip.getTrajectory();
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try (Connection con = this._pgLoader.getConnection();){
-                ILonLatTime ps = trajectory.get(0);
-                ILonLatTime pe = trajectory.get(trajectory.size() - 1);
-                IQueryCondition[] conditions = new DrmQueryCondition[]{new DrmQueryCondition(this.createRect(ps), 3000.0), new DrmQueryCondition(this.createRect(trajectory), 3000.0, ROAD_TYPES), new DrmQueryCondition(this.createRect(pe), 3000.0)};
-                Network network = this._drmLoader.setConnection(con).setQueryConditions(conditions).load();
-                Route route = this._roadMatching.runSparseMapMatching(network, trajectory);
-                if (route != null && !route.isEmpty()) {
-                    List<Node> nodes = route.listNodes();
-                    List<Link> links = route.listLinks();
-                    if (nodes.size() >= 2) {
-                        List<ILonLat> routePoints = route.getTrajectory();
-                        routePoints.add(0, ps);
-                        routePoints.add(pe);
-                        List<STNetworkPoint> result = this.assignRouteTimestamp(trajectory, routePoints, nodes, links);
-                        if (!this._enableTimeSplit) return this.format(trip, result, TrajectoryUtils.length(trajectory), 2);
-                        result = this.insertUnitTimePoint(result, 300L);
-                        return this.format(trip, result, TrajectoryUtils.length(trajectory), 2);
-                    }
-                    System.err.println("insufficient interpolated points on road");
-                    return null;
+        try (Connection con = this._pgLoader.getConnection()) {
+            ILonLatTime ps = trajectory.get(0);
+            ILonLatTime pe = trajectory.get(trajectory.size() - 1);
+            IQueryCondition[] conditions = new DrmQueryCondition[]{new DrmQueryCondition(this.createRect(ps), 3000.0), new DrmQueryCondition(this.createRect(trajectory), 3000.0, ROAD_TYPES), new DrmQueryCondition(this.createRect(pe), 3000.0)};
+            Network network = this._drmLoader.setConnection(con).setQueryConditions(conditions).load();
+            Route route = this._roadMatching.runSparseMapMatching(network, trajectory);
+            if (route != null && !route.isEmpty()) {
+                List<Node> nodes = route.listNodes();
+                List<Link> links = route.listLinks();
+                if (nodes.size() >= 2) {
+                    List<ILonLat> routePoints = route.getTrajectory();
+                    routePoints.add(0, ps);
+                    routePoints.add(pe);
+                    List<STNetworkPoint> result = this.assignRouteTimestamp(trajectory, routePoints, nodes, links);
+                    if (!this._enableTimeSplit) return this.format(trip, result, TrajectoryUtils.length(trajectory), 2);
+                    result = this.insertUnitTimePoint(result, 300L);
+                    return this.format(trip, result, TrajectoryUtils.length(trajectory), 2);
                 }
-                System.err.println("failed to interpolate road section");
+                System.err.println("insufficient interpolated points on road");
                 return null;
             }
-            catch (Throwable throwable2) {
-                if (throwable == null) {
-                    throwable = throwable2;
-                    throw throwable;
-                }
-                if (throwable == throwable2) throw throwable;
-                throwable.addSuppressed(throwable2);
-                throw throwable;
-            }
+            System.err.println("failed to interpolate road section");
+            return null;
         }
         catch (NullPointerException | SQLException exp) {
             exp.printStackTrace();

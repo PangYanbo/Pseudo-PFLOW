@@ -190,14 +190,14 @@ public final class TrajectoryUtils {
     public static <T extends ILonLat> Map<T, Date> putTimeStamp(List<T> points, Date ts, Date te) {
         double dist = TrajectoryUtils.length(points);
         long duration = te.getTime() - ts.getTime();
-        LinkedHashMap<ILonLat, Date> result = new LinkedHashMap<ILonLat, Date>();
+        LinkedHashMap<T, Date> result = new LinkedHashMap<T, Date>();
         Date dt = (Date)Date.class.cast(ts.clone());
-        ILonLat p0 = (ILonLat)points.get(0);
+        T p0 = points.get(0);
         result.put(p0, dt);
         int N = points.size() - 1;
         int i = 1;
         while (i < N) {
-            ILonLat p1 = (ILonLat)points.get(i);
+            T p1 = points.get(i);
             double len = DistanceUtils.distance(p0, p1);
             double ratio = len / dist;
             dt = DateUtils.addMilliseconds((Date)dt, (int)((int)(ratio * (double)duration)));
@@ -206,7 +206,7 @@ public final class TrajectoryUtils {
             ++i;
         }
         Date de = (Date)Date.class.cast(te.clone());
-        ILonLat pe = (ILonLat)points.get(N);
+        T pe = points.get(N);
         result.put(pe, de);
         return result;
     }

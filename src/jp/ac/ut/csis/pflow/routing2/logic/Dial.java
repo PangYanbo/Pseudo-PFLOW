@@ -143,7 +143,6 @@ extends ARoutingLogic {
      * WARNING - void declaration
      */
     private Network calcProbability(Network network, Map<Node, ARoutingLogic.Knot> costs, Node depnode, Node arrnode) {
-        void var7_10;
         ArrayList<Map.Entry<Node, ARoutingLogic.Knot>> entries = new ArrayList<Map.Entry<Node, ARoutingLogic.Knot>>(costs.entrySet());
         Collections.sort(entries, new Comparator<Map.Entry<Node, ARoutingLogic.Knot>>(){
 
@@ -175,6 +174,7 @@ extends ARoutingLogic {
             }
         }
         int n = entries.size() - 1;
+        int var7_10 = n;
         while (var7_10 >= 0) {
             Node node = network.getNode(((Node)((Map.Entry)entries.get((int)var7_10)).getKey()).getNodeID());
             if (node != null) {
@@ -234,7 +234,7 @@ extends ARoutingLogic {
                 return new Double(knot1.getCost()).compareTo(new Double(knot2.getCost()));
             }
         });
-        ARoutingLogic.Knot knot = new ARoutingLogic.Knot(this, arrnode);
+        ARoutingLogic.Knot knot = new Knot(arrnode);
         LinkedHashMap<Node, ARoutingLogic.Knot> knots = new LinkedHashMap<Node, ARoutingLogic.Knot>();
         knots.put(arrnode, knot);
         queue.add(knot);
@@ -251,7 +251,7 @@ extends ARoutingLogic {
                     ((ARoutingLogic.Knot)knots.get(n)).update(knot, cst);
                     continue;
                 }
-                ARoutingLogic.Knot k = new ARoutingLogic.Knot(this, n, knot, cst);
+                ARoutingLogic.Knot k = new Knot(n, knot, cst);
                 knots.put(n, k);
                 queue.add(k);
             }

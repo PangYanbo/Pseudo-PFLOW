@@ -98,9 +98,9 @@ public class Kmeans {
             double prevLen = 0.0;
             while (k > rects.size()) {
                 double len = 0.0;
-                ArrayList itr = new ArrayList(rects.keySet());
+                ArrayList<Rectangle2D.Double> itr = new ArrayList<Rectangle2D.Double>(rects.keySet());
                 for (Rectangle2D.Double double_ : itr) {
-                    List cands = (List)rects.get(double_);
+                    List<T> cands = rects.get(double_);
                     double dist = this.getDistribution(cands);
                     if (dist < 0.01) {
                         len += double_.getWidth();
@@ -119,7 +119,7 @@ public class Kmeans {
                 prevN = rects.size();
                 prevLen = len;
             }
-            ArrayList list = new ArrayList(rects.entrySet());
+            ArrayList<Map.Entry<Rectangle2D.Double, List<T>>> list = new ArrayList<Map.Entry<Rectangle2D.Double, List<T>>>(rects.entrySet());
             Collections.sort(list, new Comparator<Map.Entry<Rectangle2D.Double, List<T>>>(){
 
                 @Override
@@ -131,7 +131,7 @@ public class Kmeans {
             });
             ArrayList<LonLat> centroids = new ArrayList<LonLat>();
             int idx = 1;
-            for (Map.Entry entry : list) {
+            for (Map.Entry<Rectangle2D.Double, List<T>> entry : list) {
                 Rectangle2D.Double rect = (Rectangle2D.Double)entry.getKey();
                 centroids.add(new LonLat(rect.getCenterX(), rect.getCenterY()));
                 if (++idx > k) break;
@@ -158,8 +158,8 @@ public class Kmeans {
         }
 
         private <T extends LonLat> List<T> intersectPoints(Rectangle2D.Double rect, List<T> points) {
-            ArrayList<LonLat> list = new ArrayList<LonLat>();
-            for (LonLat p : points) {
+            ArrayList<T> list = new ArrayList<T>();
+            for (T p : points) {
                 if (!rect.contains(p.getLon(), p.getLat())) continue;
                 list.add(p);
             }

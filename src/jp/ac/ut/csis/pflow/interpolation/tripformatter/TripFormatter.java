@@ -55,73 +55,41 @@ public class TripFormatter {
         File infile = new File(args[0]);
         File outfile = new File(args[1]);
         System.out.println(infile.getAbsolutePath());
-        try {
-            Throwable throwable = null;
-            Object var4_6 = null;
-            try {
-                BufferedReader br = Files.newBufferedReader(infile.toPath());
-                try {
-                    try (BufferedWriter bw = Files.newBufferedWriter(outfile.toPath(), new OpenOption[0]);){
-                        void var11_16;
-                        int count = 0;
-                        StrTokenizer st = StrTokenizer.getCSVInstance();
-                        String line = null;
-                        String prev = null;
-                        ArrayList arrayList = new ArrayList();
-                        while ((line = br.readLine()) != null) {
-                            String[] tokens = st.reset(line).getTokenArray();
-                            String uid = tokens[0];
-                            String ts = String.valueOf(tokens[2]) + " " + tokens[8];
-                            String te = String.valueOf(tokens[2]) + " " + tokens[9];
-                            String mode = tokens[4];
-                            String traj = tokens[14];
-                            if (prev != null && !prev.equals(uid)) {
-                                System.out.println(prev);
-                                ++count;
-                                List<List<String>> output = new TripFormatter().evaluate(uid, (List<List<String>>)var11_16);
-                                for (List<String> out : output) {
-                                    bw.write(String.valueOf(prev) + "\t" + StringUtils.join(out, (String)"\t"));
-                                    bw.newLine();
-                                }
-                                ArrayList arrayList2 = new ArrayList();
-                            }
-                            var11_16.add(Arrays.asList(mode, ts, te, traj));
-                            prev = uid;
-                        }
-                        System.out.println(prev);
-                        ++count;
-                        List<List<String>> output = new TripFormatter().evaluate(prev, (List<List<String>>)var11_16);
-                        for (List<String> out : output) {
-                            bw.write(String.valueOf(prev) + "\t" + StringUtils.join(out, (String)"\t"));
-                            bw.newLine();
-                        }
-                        System.out.println(count);
+        try (BufferedReader br = Files.newBufferedReader(infile.toPath());
+             BufferedWriter bw = Files.newBufferedWriter(outfile.toPath(), new OpenOption[0])) {
+            int count = 0;
+            StrTokenizer st = StrTokenizer.getCSVInstance();
+            String line = null;
+            String prev = null;
+            ArrayList arrayList = new ArrayList();
+            while ((line = br.readLine()) != null) {
+                String[] tokens = st.reset(line).getTokenArray();
+                String uid = tokens[0];
+                String ts = String.valueOf(tokens[2]) + " " + tokens[8];
+                String te = String.valueOf(tokens[2]) + " " + tokens[9];
+                String mode = tokens[4];
+                String traj = tokens[14];
+                if (prev != null && !prev.equals(uid)) {
+                    System.out.println(prev);
+                    ++count;
+                    List<List<String>> output = new TripFormatter().evaluate(uid, (List<List<String>>)arrayList);
+                    for (List<String> out : output) {
+                        bw.write(String.valueOf(prev) + "\t" + StringUtils.join(out, (String)"\t"));
+                        bw.newLine();
                     }
-                    if (br == null) return;
+                    arrayList = new ArrayList();
                 }
-                catch (Throwable throwable2) {
-                    if (throwable == null) {
-                        throwable = throwable2;
-                    } else if (throwable != throwable2) {
-                        throwable.addSuppressed(throwable2);
-                    }
-                    if (br == null) throw throwable;
-                    br.close();
-                    throw throwable;
-                }
-                br.close();
-                return;
+                arrayList.add(Arrays.asList(mode, ts, te, traj));
+                prev = uid;
             }
-            catch (Throwable throwable3) {
-                if (throwable == null) {
-                    throwable = throwable3;
-                    throw throwable;
-                } else {
-                    if (throwable == throwable3) throw throwable;
-                    throwable.addSuppressed(throwable3);
-                }
-                throw throwable;
+            System.out.println(prev);
+            ++count;
+            List<List<String>> output = new TripFormatter().evaluate(prev, (List<List<String>>)arrayList);
+            for (List<String> out : output) {
+                bw.write(String.valueOf(prev) + "\t" + StringUtils.join(out, (String)"\t"));
+                bw.newLine();
             }
+            System.out.println(count);
         }
         catch (IOException exp) {
             LOGGER.error((Object)"error", (Throwable)exp);
