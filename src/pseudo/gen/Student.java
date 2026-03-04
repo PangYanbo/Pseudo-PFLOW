@@ -285,7 +285,7 @@ public class Student extends ActGenerator {
 		prop.load(inputStream);
 
 		root = prop.getProperty("root");
-		output = prop.getProperty("outputDir");
+		output = "C:/Data/PseudoPFLOW/";
 		inputDir = prop.getProperty("inputDir");
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
@@ -341,8 +341,8 @@ public class Student extends ActGenerator {
 
 		String outputDir = String.format("%s/activity/", output);
 
-		int start = 1;
-		for (int i = start; i <= 47; i++) {
+		int start = 22;
+		for (int i = start; i <= 22; i++) {
 			// create directory
 			File prefDir = new File(outputDir, String.valueOf(i));
 			System.out.println("Start prefecture:" + i + prefDir.mkdirs());

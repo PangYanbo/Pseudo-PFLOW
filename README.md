@@ -47,13 +47,9 @@ If you encounter any issues with Maven configuration or dependencies are not bei
 2. Copy it into your local `.m2` directory, usually located at `~/.m2/` on UNIX-like systems or `C:\Users\<YourUsername>\.m2\` on Windows.
 3. Merge the directory if it already exists to ensure no existing dependencies are lost.
 
-### Adding `pflowlib.jar` to Libraries
+### pflowlib sources
 
-If `pflowlib.jar` needs to be included in the project:
-
-- Open `File > Project Structure` in IntelliJ IDEA.
-- Go to `Libraries` and click the `+` sign to add a new library.
-- Navigate to the location of `pflowlib.jar`, select it, and add it to the project.
+The `jp.ac.ut.csis.pflow.*` library (previously distributed as `lib/pflowlib.jar`) is now compiled from source at `src/jp/ac/ut/csis/pflow/`. No manual JAR installation is needed — `mvn compile` picks up the sources automatically.
 
 ## Ensure Correct Run Configuration
 
@@ -134,7 +130,7 @@ Each person is assigned a role(workder, student, no-worker).
   * Activity data in CSV format
 
 ## 5. Create trip data from activity data
-* Entry point: pseudo.gen.TripGenerator_WebAPI_refactor
+* Entry point: pseudo.gen.TripGenerator
 * Input
   * city_boundary.csv: City boundary data
   * base_station.csv: Location of stations
