@@ -3,38 +3,50 @@
   <groupId>DSPFlow</groupId>
   <artifactId>DSPFlow</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-
+  
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <geotools.version>26-SNAPSHOT</geotools.version>
+        <geotools.version>26.5</geotools.version>
 
-		<java.version>1.8</java.version>
+        <java.version>11</java.version>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
 
     </properties>
 
-
-
+   
   <dependencies>
-
-      <!-- HttpClient for making HTTP requests -->
       <dependency>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpclient</artifactId>
-          <version>4.5.13</version>
-      </dependency>
-
-      <!-- Gson for JSON parsing -->
-      <dependency>
-          <groupId>com.google.code.gson</groupId>
-          <artifactId>gson</artifactId>
-          <version>2.8.8</version>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-csv</artifactId>
+          <version>1.9.0</version>  <!-- Use the latest version available -->
       </dependency>
 
 
-      <!-- https://mvnrepository.com/artifact/org.geotools/geotools -->
+      <!-- GeoTools Core Modules -->
+      <dependency>
+          <groupId>org.geotools</groupId>
+          <artifactId>gt-main</artifactId>
+          <version>${geotools.version}</version>  <!-- Use the latest version available -->
+      </dependency>
+      <dependency>
+          <groupId>org.geotools</groupId>
+          <artifactId>gt-metadata</artifactId>
+          <version>${geotools.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.geotools</groupId>
+          <artifactId>gt-referencing</artifactId>
+          <version>${geotools.version}</version>
+      </dependency>
+      <!-- EPSG Support -->
+      <dependency>
+          <groupId>org.geotools</groupId>
+          <artifactId>gt-epsg-hsql</artifactId>
+          <version>${geotools.version}</version>
+      </dependency>
+<!-- https://mvnrepository.com/artifact/org.geotools/geotools -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -46,27 +58,47 @@
             <artifactId>gt-shapefile</artifactId>
             <version>${geotools.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-swing</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
+    <!-- pflowlib source dependencies (previously implicit via JAR classpath) -->
+    <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>1.2</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>2.20.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>2.20.0</version>
+    </dependency>
+    <dependency>
+        <groupId>commons-dbcp</groupId>
+        <artifactId>commons-dbcp</artifactId>
+        <version>1.4</version>
+    </dependency>
+    <dependency>
+        <groupId>net.postgis</groupId>
+        <artifactId>postgis-jdbc</artifactId>
+        <version>2.5.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.6.0</version>
+    </dependency>
 	<dependency>
-		<groupId>com.vividsolutions</groupId>
-		<artifactId>jts</artifactId>
-		<version>1.13</version>
+	    <groupId>org.apache.commons</groupId>
+	    <artifactId>commons-lang3</artifactId>
+	    <version>3.12.0</version>
 	</dependency>
-	<!-- https://mvnrepository.com/artifact/commons-lang/commons-lang -->
 	<dependency>
-	    <groupId>commons-lang</groupId>
-	    <artifactId>commons-lang</artifactId>
-	    <version>2.6</version>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-math3</artifactId>
+		<version>3.6.1</version>
 	</dependency>
-			<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math</artifactId>
-			<version>2.2</version>
-		</dependency>
       <dependency>
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpclient</artifactId>
@@ -75,15 +107,16 @@
 	   	<dependency>
     <groupId>org.json</groupId>
     <artifactId>json</artifactId>
-    <version>20200518</version>
+    <version>20231013</version>
    </dependency>
-
+   
    <dependency>
 	<groupId>org.opentripplanner</groupId>
 	<artifactId>otp</artifactId>
 	<version>1.4.0</version>
+	<scope>provided</scope>
    </dependency>
-
+	
   </dependencies>
       <repositories>
       <repository>
@@ -93,21 +126,15 @@
         <snapshots><enabled>false</enabled></snapshots>
         <releases><enabled>true</enabled></releases>
       </repository>
-      <repository>
-        <id>osgeo-snapshot</id>
-        <name>OSGeo Snapshot Repository</name>
-        <url>https://repo.osgeo.org/repository/snapshot/</url>
-        <snapshots><enabled>true</enabled></snapshots>
-        <releases><enabled>false</enabled></releases>
-      </repository>
     </repositories>
-
+    
     <build>
+        <sourceDirectory>src</sourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.0</version>
+				<version>3.11.0</version>
 				<configuration>
 					<source>11</source>
 					<target>11</target>
@@ -115,7 +142,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.1.0</version>
+				<version>3.6.0</version>
 				<configuration>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>

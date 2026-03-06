@@ -69,9 +69,9 @@ public class Person {
 		this.labor = labor;
 	}
 
-	public void setCarowner(Boolean ownership){ this.carowner = ownership; }
+	public void setCarOwner(Boolean ownership){ this.carowner = ownership; }
 
-	public void setBikeowner(Boolean ownership){ this.bikeowner = ownership; }
+	public void setBikeOwner(Boolean ownership){ this.bikeowner = ownership; }
 
 	public List<Activity> getActivities() {
 		return activities;
@@ -124,4 +124,5 @@ public class Person {
 
 	public boolean hasCar(){return this.carowner; }
 
+	public boolean hasBike(){return this.bikeowner; }
 }

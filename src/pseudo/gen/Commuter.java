@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 import jp.ac.ut.csis.pflow.routing4.res.Network;
+import org.opengis.referencing.FactoryException;
 import pseudo.acs.CensusODAccessor;
 import pseudo.acs.DataAccessor;
 import pseudo.acs.MNLParamAccessor;
@@ -183,7 +184,7 @@ public class Commuter extends ActGenerator {
 		return new ActivityTask(id, households, mapMotif);
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, FactoryException {
 
         Country country = new Country();
 
@@ -202,7 +203,7 @@ public class Commuter extends ActGenerator {
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
-		output = prop.getProperty("outputDir");
+		output = "C:/Data/PseudoPFLOW/";
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 
@@ -245,8 +246,8 @@ public class Commuter extends ActGenerator {
         String outputDir = String.format("%s/activity/", output);
 
         long starttime = System.currentTimeMillis();
-        int start = 1;
-        for (int i = start; i <= 47; i++) {
+        int start = 22;
+        for (int i = start; i <= 22; i++) {
 
 			// load markov chains
 			Map<EMarkov, Map<EGender, MkChainAccessor>> mrkMap = new HashMap<>();

@@ -11,6 +11,7 @@ import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import jp.ac.ut.csis.pflow.routing4.res.Network;
+import org.opengis.referencing.FactoryException;
 import pseudo.acs.*;
 import pseudo.res.Activity;
 import pseudo.res.EGender;
@@ -143,7 +144,7 @@ public class NonCommuter extends ActGenerator {
 		return new ActivityTask(id, households, mapMotif);
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, FactoryException {
 
 		Country country = new Country();
 
@@ -162,7 +163,7 @@ public class NonCommuter extends ActGenerator {
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
-		output = prop.getProperty("outputDir");
+		output = "C:/Data/PseudoPFLOW/";
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 
@@ -205,8 +206,8 @@ public class NonCommuter extends ActGenerator {
 		String outputDir = String.format("%s/activity/", output);
 
 		long starttime = System.currentTimeMillis();
-		int start = 1;
-		for (int i = start; i <= 47; i++) {
+		int start = 22;
+		for (int i = start; i <= 22; i++) {
 			// create directory
 			File prefDir = new File(outputDir, String.valueOf(i));
 			System.out.println("Start prefecture:" + i + prefDir.mkdirs());
