@@ -286,7 +286,12 @@ public class TripGenerator {
 			System.out.println("Start prefecture:" + i + prefDir.mkdirs());
 
 			File actDir = new File(inputDir, String.valueOf(i));
-			for(File file: actDir.listFiles()){
+			File[] actFiles = actDir.listFiles();
+			if (actFiles == null) {
+				System.err.println("Directory not found: " + actDir.getAbsolutePath());
+				continue;
+			}
+			for(File file: actFiles){
 				if (file.getName().contains(".csv")) {
 					List<Person> agents = PersonAccessor.loadActivity(file.getAbsolutePath(), mfactor, 0.4, 0.4);
 					System.out.println(String.format("%s", file.getName()));
