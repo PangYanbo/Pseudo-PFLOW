@@ -49,7 +49,7 @@ public class MkChainAccessor {
             	String[] items = line.split(",");
             	Map<EPurpose,Map<ETransition, Double>> mapTime = new HashMap<>();
             	for (int i = 1; i < items.length; i++) {
-            		String[] es = items[i].split(" ");
+            		String[] es = items[i].trim().split("\\s+");
             		EPurpose purpose = EPurpose.getType(Integer.valueOf(es[0]));
             		Map<ETransition, Double> mapState = new HashMap<>();
             		for (int j = 1; j < es.length; j+=2) {
@@ -61,7 +61,7 @@ public class MkChainAccessor {
             	}
             	data.add(mapTime);
             }
-        } catch (Exception e) {
+            } catch (Exception e) {
             e.printStackTrace();
         }		
 		return 1;

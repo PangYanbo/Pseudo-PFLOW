@@ -5,7 +5,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.jboss.netty.util.internal.ThreadLocalRandom;
+import java.util.concurrent.ThreadLocalRandom;
 
 import jp.ac.ut.csis.pflow.geom.DistanceUtils;
 import jp.ac.ut.csis.pflow.geom2.ILonLat;
@@ -51,7 +51,7 @@ public abstract class ActGenerator {
 		this.mrkAcsMap = mrkAcsMap;
 	}
 	
-	protected synchronized double getRandom() {
+	protected double getRandom() {
 		return ThreadLocalRandom.current().nextDouble();
 	}
 	
@@ -427,7 +427,7 @@ public abstract class ActGenerator {
 			es.shutdown();
 		} catch (Exception exp) {
 			exp.printStackTrace();
-		}		
+		}
 		return 0;
 	}
 }

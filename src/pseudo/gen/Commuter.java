@@ -168,14 +168,9 @@ public class Commuter extends ActGenerator {
 
 		@Override
 		public Integer call() throws Exception {
-			try {
-				for (HouseHold household : households) {
-					process(household);		
-				}
-			}catch(Exception e) {
-				e.printStackTrace();
+			for (HouseHold household : households) {
+				process(household);
 			}
-			System.out.printf("[%d]-%d-%d%n",id, error, total);
 			return 0;
 		}
 	}
@@ -203,7 +198,7 @@ public class Commuter extends ActGenerator {
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
-		output = "C:/Data/PseudoPFLOW/";
+		output = prop.getProperty("outputDir", root); // smoke test: set outputDir=/tmp/pflow_smoke/ in config to override
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 
@@ -272,7 +267,6 @@ public class Commuter extends ActGenerator {
             for (File file : householdDir.listFiles()) {
                 if (file.getName().contains(".csv")) {
                     List<HouseHold> households = PersonAccessor.load(file.getAbsolutePath(), new ELabor[]{ELabor.WORKER}, mfactor);
-                    System.out.println(file.getName() + " " + households.size());
                     worker.assign(households);
                     String resultName = String.format("%s%s%s%s_labor.csv", outputDir, i, "/", file.getName().replaceAll(".csv", ""));
                     PersonAccessor.writeActivities(resultName, households);
