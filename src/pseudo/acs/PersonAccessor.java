@@ -46,8 +46,12 @@ public class PersonAccessor{
 		try (BufferedReader br = new BufferedReader(new FileReader(filename));){
             String line = br.readLine();
             HouseHold household = null;
-            while ((line = br.readLine()) != null) {	
+            while ((line = br.readLine()) != null) {
             	String[] items = line.split(",");
+            	if (items.length < 9) {
+            		System.err.println("PersonAccessor.load: skipping short row (" + items.length + " cols): " + line);
+            		continue;
+            	}
             	String householdId = String.valueOf(items[0]);
             	if (household == null || !householdId.equals(household.getId())) {
             		int family = Integer.valueOf(items[1]);
@@ -72,7 +76,7 @@ public class PersonAccessor{
             	}
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to load person data: " + filename, e);
         }
 		return data;
 	}
@@ -98,10 +102,10 @@ public class PersonAccessor{
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to write person data: " + filename, e);
 		}
 	}
-		
+
 	public static void writeActivities(String filename, List<HouseHold> data) {
 		try(BufferedWriter bw = new BufferedWriter(new FileWriter(filename));){
 			for (HouseHold house : data) {
@@ -126,10 +130,10 @@ public class PersonAccessor{
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to write activities: " + filename, e);
 		}
 	}
-	
+
 	public static List<Person> loadActivity(String filename, int scale, Double carratio, Double bikeratio) {
 		List<Person> res = new ArrayList<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(filename));){
@@ -137,13 +141,17 @@ public class PersonAccessor{
             Person person = null;
             int preId = 0;
             int counter = 0;
-            while ((line = br.readLine()) != null) {	
-            	String[] items = line.split(",");	
+            while ((line = br.readLine()) != null) {
+            	String[] items = line.split(",");
+            	if (items.length < 10) {
+            		System.err.println("PersonAccessor.loadActivity: skipping short row (" + items.length + " cols): " + line);
+            		continue;
+            	}
             	int nextId = Integer.valueOf(items[0]);
             	int age = Integer.valueOf(items[1]);
             	EGender gender = EGender.getType(Integer.valueOf(items[2]));
             	ELabor labor = ELabor.getType(Integer.valueOf(items[3]));
-            	
+
             	if (nextId != preId) {
             		person = new Person(null, nextId, age, gender, labor);
 					Random random = new Random();
@@ -166,11 +174,11 @@ public class PersonAccessor{
             	Activity activity = new Activity(
             			new GLonLat(lon, lat, gcode), startTime, duration, purpose);
             	person.addAcitivity(activity);
-            	
+
             	preId = nextId;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to load activity data: " + filename, e);
         }
 		return res;
 	}
@@ -197,43 +205,47 @@ public class PersonAccessor{
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to write trips: " + filename, e);
 		}
 	}
-	
-	
+
+
 	public static List<Person> loadTrips(String filename) {
 		List<Person> res = new ArrayList<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(filename));){
             String line = null;
             Person person = null;
             int preId = 0;
-            while ((line = br.readLine()) != null) {	
-            	String[] items = line.split(",");	
+            while ((line = br.readLine()) != null) {
+            	String[] items = line.split(",");
+            	if (items.length < 9) {
+            		System.err.println("PersonAccessor.loadTrips: skipping short row (" + items.length + " cols): " + line);
+            		continue;
+            	}
             	int nextId = Integer.valueOf(items[0]);
-            	
+
             	long depTime = Long.valueOf(items[1]);
             	double lon1 = Double.valueOf(items[2]);
             	double lat1 = Double.valueOf(items[3]);
             	double lon2 = Double.valueOf(items[4]);
             	double lat2 = Double.valueOf(items[5]);
-            	
+
             	ETransport mode = ETransport.getType(Integer.valueOf(items[6]));
             	EPurpose purpose = EPurpose.getType(Integer.valueOf(items[7]));
             	ELabor labor = ELabor.getType(Integer.valueOf(items[8]));
-            	
+
             	if (nextId != preId) {
             		person = new Person(null, nextId, 0, EGender.MALE, labor);
             		res.add(person);
             	}
-            	
+
             	Trip trip = new Trip(mode, purpose, depTime, new LonLat(lon1,lat1), new LonLat(lon2,lat2));
             	person.addTrip(trip);
-            	
+
             	preId = nextId;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to load trips: " + filename, e);
         }
 		return res;
 	}
@@ -245,31 +257,35 @@ public class PersonAccessor{
             String line = null;
             Person person = null;
             int preId = 0;
-            while ((line = br.readLine()) != null) {	
-            	String[] items = line.split(",");	
+            while ((line = br.readLine()) != null) {
+            	String[] items = line.split(",");
+            	if (items.length < 8) {
+            		System.err.println("PersonAccessor.loadTrajectory: skipping short row (" + items.length + " cols): " + line);
+            		continue;
+            	}
             	int nextId = Integer.valueOf(items[0]);
-            	
+
             	if (nextId != preId) {
             		person = new Person(null, nextId, 0, EGender.MALE, ELabor.UNDEFINED);
             		res.add(person);
             	}
-            	
+
             	long time = Long.valueOf(items[1]);
-            	
+
             	double lon = Double.valueOf(items[3]);
             	double lat = Double.valueOf(items[4]);
             	ETransport mode = ETransport.getType(Integer.valueOf(items[5]));
             	EPurpose purpose = EPurpose.getType(Integer.valueOf(items[6]));
             	String link = String.valueOf(items[7]);
-     
+
             	SPoint point = new SPoint(lon, lat, new Date(time), mode, purpose);
             	point.setLink(link);
             	person.addTrajectory(point);
-            	
+
             	preId = nextId;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to load trajectory: " + filename, e);
         }
 		return res;
 	}
@@ -309,7 +325,7 @@ public class PersonAccessor{
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to write trajectory: " + filename, e);
 		}
 		return 0;
 	}

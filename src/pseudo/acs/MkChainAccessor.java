@@ -62,8 +62,8 @@ public class MkChainAccessor {
             	data.add(mapTime);
             }
             } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load Markov chain file: " + filename, e);
+        }
 		return 1;
-	}	
+	}
 }
