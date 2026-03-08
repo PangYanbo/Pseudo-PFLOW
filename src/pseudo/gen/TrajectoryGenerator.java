@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -173,8 +174,11 @@ public class TrajectoryGenerator {
 					p.clearTrajectory();
 					p.clearActivity();
 				}
-			}catch(Exception e) {
-				e.printStackTrace();
+			} catch (Throwable t) {
+				System.err.println("[TrajectoryGenerator task " + id + "] failed: " + t);
+				t.printStackTrace();
+				if (t instanceof Exception) throw (Exception) t;
+				throw new RuntimeException(t);
 			}
 			return 0;
 		}
@@ -199,7 +203,18 @@ public class TrajectoryGenerator {
 		try {
 			es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Trajectory routing tasks interrupted", e);
+		}
+		for (Future<Integer> f : features) {
+			try {
+				f.get();
+			} catch (ExecutionException ex) {
+				throw new RuntimeException("Trajectory routing task failed", ex.getCause());
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("Trajectory routing task interrupted", ex);
+			}
 		}
 		return 0;
 	}
