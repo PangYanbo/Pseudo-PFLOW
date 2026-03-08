@@ -45,11 +45,11 @@ public class DataAccessor {
                 res.addNode(new Node(id, x, y));
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load location data: " + filename, e);
+        }
 		return res;
 	}
-	
+
 	public static int loadPreSchoolData(String filename, Country japan){
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))){
             String line;
@@ -67,11 +67,11 @@ public class DataAccessor {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load preschool data: " + filename, e);
+        }
 		return 1;
 	}
-	
+
 	public static int loadSchoolData(String filename, Country japan){
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))){
             String line;
@@ -99,11 +99,11 @@ public class DataAccessor {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load school data: " + filename, e);
+        }
 		return 1;
 	}
-	
+
 	public static int loadCityData(String filename, Country japan){
 		try (BufferedReader br = new BufferedReader(new FileReader(filename));){
             String line;
@@ -131,11 +131,11 @@ public class DataAccessor {
             			new LonLat(lon, lat));
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load city data: " + filename, e);
+        }
 		return 1;
 	}
-	
+
 	public static int loadHospitalData(String filename, Country japan) {
 		try (BufferedReader br = new BufferedReader(new FileReader(filename));){
             String line;
@@ -160,8 +160,8 @@ public class DataAccessor {
             	}
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load hospital data: " + filename, e);
+        }
 		return 1;
 	}
 
@@ -178,8 +178,10 @@ public class DataAccessor {
 			br.readLine();
 			while((line = br.readLine()) != null){
 				String[] items = line.split(",");
-//				poi.rename(columns={0:'DN', 1: 'DN+', 2: 'DNKN', 3: 'TEL', 4: 'TEL-', 5: 'ADD', 6: 'ADDKN', 7: 'ADDCD', 8: 'ADD#', 9: 'ZIP', 10: 'BUSC',
-//						11: 'REP', 12: 'COMP', 13: 'ATR', 14: 'DOE', 15: 'DOP', 16: 'DEL#', 17: 'FLAG', 18: 'PFLAG', 19: 'ACC', 20: 'LON', 21: 'LAT'})
+				if (items.length < 22) {
+					System.err.println("DataAccessor.loadRestaurantData: skipping short row (" + items.length + " cols)");
+					continue;
+				}
 				String gcode = items[7];  // admin code
 				double lon = Double.parseDouble(items[20]);
 				double lat = Double.parseDouble(items[21]);
@@ -200,14 +202,14 @@ public class DataAccessor {
 				City city = japan.getCity(gcode);
 				if (city != null) {
 					GMesh gmesh = japan.hasMesh(mcode) ? japan.getMesh(mcode) : new GMesh(mesh);
-					double capacity = 10000; //
+					double capacity = 10000;
 					Facility fac = new Facility(0, transformedLon, transformedLat, gcode, capacity);
 					gmesh.addRestaurant(fac);
 					city.addMesh(gmesh);
 				}
 			};
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to load restaurant data: " + filename, e);
 		}
 	};
 
@@ -223,8 +225,10 @@ public class DataAccessor {
 			br.readLine();
 			while((line = br.readLine()) != null){
 				String[] items = line.split(",");
-//				poi.rename(columns={0:'DN', 1: 'DN+', 2: 'DNKN', 3: 'TEL', 4: 'TEL-', 5: 'ADD', 6: 'ADDKN', 7: 'ADDCD', 8: 'ADD#', 9: 'ZIP', 10: 'BUSC',
-//						11: 'REP', 12: 'COMP', 13: 'ATR', 14: 'DOE', 15: 'DOP', 16: 'DEL#', 17: 'FLAG', 18: 'PFLAG', 19: 'ACC', 20: 'LON', 21: 'LAT'})
+				if (items.length < 22) {
+					System.err.println("DataAccessor.loadRetailData: skipping short row (" + items.length + " cols)");
+					continue;
+				}
 				String gcode = items[7];  // admin code
 				double lon = Double.parseDouble(items[20]);
 				double lat = Double.parseDouble(items[21]);
@@ -243,14 +247,14 @@ public class DataAccessor {
 				City city = japan.getCity(gcode);
 				if (city != null) {
 					GMesh gmesh = japan.hasMesh(mcode) ? japan.getMesh(mcode) : new GMesh(mesh);
-					double capacity = 10000; //
+					double capacity = 10000;
 					Facility fac = new Facility(0, transformedLon, transformedLat, gcode, capacity);
 					gmesh.addRetail(fac);
 					city.addMesh(gmesh);
 				}
 			};
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("Failed to load retail data: " + filename, e);
 		}
 	};
 
@@ -279,11 +283,11 @@ public class DataAccessor {
             	}
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load Zenrin tatemono data: " + filename, e);
+        }
 		return 1;
 	}
-	
+
 	public static int loadEconomicCensus(String filename, Country japan){
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))){
             String line;
@@ -309,9 +313,9 @@ public class DataAccessor {
                	}
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }		
+            throw new RuntimeException("Failed to load economic census: " + filename, e);
+        }
 		return 1;
 	}
-		
+
 }
