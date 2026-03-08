@@ -255,8 +255,11 @@ public class Student extends ActGenerator {
 						process(household);		
 					}
 				}
-			}catch(Exception e) {
-				e.printStackTrace();
+			} catch (Throwable t) {
+				System.err.println("[Student task " + id + "] failed: " + t);
+				t.printStackTrace();
+				if (t instanceof Exception) throw (Exception) t;
+				throw new RuntimeException(t);
 			}
 			System.out.println(String.format("[%d] error:%d total:%d",id, error, total));
 			return 0;

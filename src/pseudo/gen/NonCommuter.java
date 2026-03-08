@@ -131,8 +131,11 @@ public class NonCommuter extends ActGenerator {
 				for (HouseHold household : households) {
 					process(household);
 				}
-			}catch(Exception e) {
-				e.printStackTrace();
+			} catch (Throwable t) {
+				System.err.println("[NonCommuter task " + id + "] failed: " + t);
+				t.printStackTrace();
+				if (t instanceof Exception) throw (Exception) t;
+				throw new RuntimeException(t);
 			}
 			System.out.println(String.format("[%d]-%d-%d",id, error, total));
 			return 0;

@@ -5,6 +5,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 
 import jp.ac.ut.csis.pflow.geom.DistanceUtils;
@@ -422,11 +424,23 @@ public abstract class ActGenerator {
 		
 		// execute thread processing
 		ExecutorService es = Executors.newFixedThreadPool(numThreads);
+		List<Future<Integer>> futures;
 		try {
-			es.invokeAll(listTasks);
+			futures = es.invokeAll(listTasks);
 			es.shutdown();
-		} catch (Exception exp) {
-			exp.printStackTrace();
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Activity generation tasks interrupted", ex);
+		}
+		for (Future<Integer> f : futures) {
+			try {
+				f.get();
+			} catch (ExecutionException ex) {
+				throw new RuntimeException("Activity generation task failed", ex.getCause());
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("Activity generation task interrupted", ex);
+			}
 		}
 		return 0;
 	}
