@@ -44,7 +44,9 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class TripGenerator_WebAPI_refactor {
 
@@ -596,8 +598,11 @@ public class TripGenerator_WebAPI_refactor {
 				}
 				this.total++;
 			}
-			}catch(Exception e) {
-				e.printStackTrace();
+			} catch (Throwable t) {
+				System.err.println("[WebAPI TripTask " + id + "] failed: " + t);
+				t.printStackTrace();
+				if (t instanceof Exception) throw (Exception) t;
+				throw new RuntimeException(t);
 			}
 			// System.out.printf("[%d]-%d-%d%n",id, error, total);
 			return 0;
@@ -623,12 +628,24 @@ public class TripGenerator_WebAPI_refactor {
 		
 		// execute thread processing
 		ExecutorService es = Executors.newFixedThreadPool(numThreads);
+		List<Future<Integer>> futures;
 		try {
-			es.invokeAll(listTasks);
+			futures = es.invokeAll(listTasks);
 			es.shutdown();
-		} catch (Exception exp) {
-			exp.printStackTrace();
-		}		
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("WebAPI trip generation tasks interrupted", ex);
+		}
+		for (Future<Integer> f : futures) {
+			try {
+				f.get();
+			} catch (ExecutionException ex) {
+				throw new RuntimeException("WebAPI trip generation task failed", ex.getCause());
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("WebAPI trip generation task interrupted", ex);
+			}
+		}
 	}
 
 	private static JsonNode getMixedRoute(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) {
