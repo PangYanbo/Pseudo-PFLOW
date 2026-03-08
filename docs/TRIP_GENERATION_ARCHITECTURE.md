@@ -18,9 +18,11 @@ Step 5 of the Pseudo-PFLOW pipeline converts per-person activity sequences into 
 - **"1.2 algorithm"**: for MIX mode, interpolates intermediate rail trajectory points between nearest rail-network stations using a local railway Dijkstra (fills the gap where the WebAPI returns only origin/destination)
 - **Integrated trajectory output**: writes trajectory CSV files directly alongside trip assignment; combines steps 5 + 6 of the pipeline into one execution
 - **Required env vars**: `PFLOW_API_USER` / `PFLOW_API_PASS` (fail-fast at startup if missing)
-- **Hardcoded outputDir** at line ~737: `"C:/large/PseudoPFLOW/"` — must be updated for each deployment (not yet changed; requires live API + DRM data to verify)
+- **outputDir**: reads from `prop.getProperty("outputDir", root)` (was hardcoded Windows path; fixed commit e5a669c)
+- **jackson-databind 2.13.2**: added to pom.xml (commit 977fddd) — required at runtime for API JSON parsing
+- **Smoke-tested**: pref 22, city 22429, 50 persons — session creation + mixed-mode routing + trip/trajectory output confirmed on Linux (2026-03-09)
 
-**Config dependencies**: `root`, `inputDir`, `api.url`, `car.N`, `bike.N` properties; network files `base_drm_road.csv`, `base_station.csv`, `base_rail.csv`
+**Config dependencies**: `root`, `inputDir`, `outputDir`, `api.createSessionURL`, `api.getMixedRouteURL`, `api.getRoadRouteURL`, `car.N`, `bike.N` properties; network files `drm_NN.tsv`, `railnetwork.tsv`, `base_station.csv`
 
 ---
 
@@ -123,7 +125,7 @@ archive/
 
 | File | Status | Action |
 |------|--------|--------|
-| `TripGenerator_WebAPI_refactor.java` | **Mainline** | Active; fix outputDir line ~737 when API env available |
+| `TripGenerator_WebAPI_refactor.java` | **Mainline** | Active; outputDir fixed; WebAPI smoke-tested on Linux |
 | `TripGenerator.java` | **Legacy retained** | Offline fallback; keep |
 | `TrajectoryGenerator.java` | **Legacy retained** | Offline fallback; keep (resume logic unique) |
 | `TripGenerator_WebAPI_GTFS.java` | **Research reference** | Keep until COMMUNITY mode ported |
