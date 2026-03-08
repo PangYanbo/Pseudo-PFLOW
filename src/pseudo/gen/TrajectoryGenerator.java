@@ -259,7 +259,7 @@ public class TrajectoryGenerator {
 
 		Network railway = RailLoader.load(railFile);
 
-		String inputDir = String.format("%sTrip/", dir);
+		String inputDir = String.format("%strip/", dir);
 		String outputDir = String.format("%strajectory/", dir);
 
 		// create trajectories
@@ -278,6 +278,10 @@ public class TrajectoryGenerator {
 			Map<String, List<File>> map = new TreeMap<>();
 
 			File[] files = (new File(inputDir, String.valueOf(i))).listFiles();
+			if (files == null) {
+				System.err.println("Directory not found: " + new File(inputDir, String.valueOf(i)).getAbsolutePath());
+				continue;
+			}
 			for (File file : files) {
 //				if(done.contains(file.getName().substring(0,12))){continue;}
 				int pref = Integer.parseInt(file.getName().substring(5, 7));
