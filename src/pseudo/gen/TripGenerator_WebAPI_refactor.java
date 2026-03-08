@@ -34,7 +34,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
-import org.jboss.netty.util.internal.ThreadLocalRandom;
+import java.util.concurrent.ThreadLocalRandom;
 import pseudo.acs.DataAccessor;
 import pseudo.acs.PersonAccessor;
 import pseudo.res.*;
@@ -129,9 +129,17 @@ public class TripGenerator_WebAPI_refactor {
 
 		HttpPost createSessionPost = new HttpPost(prop.getProperty("api.createSessionURL"));
 
+		String apiUser = System.getenv("PFLOW_API_USER");
+		String apiPass = System.getenv("PFLOW_API_PASS");
+		if (apiUser == null || apiUser.isBlank()) {
+			throw new IllegalStateException("Environment variable PFLOW_API_USER is not set");
+		}
+		if (apiPass == null || apiPass.isBlank()) {
+			throw new IllegalStateException("Environment variable PFLOW_API_PASS is not set");
+		}
 		List<NameValuePair> sessionParams = new ArrayList<>();
-		sessionParams.add(new BasicNameValuePair("UserID", prop.getProperty("api.userID")));
-		sessionParams.add(new BasicNameValuePair("Password", prop.getProperty("api.password")));
+		sessionParams.add(new BasicNameValuePair("UserID", apiUser));
+		sessionParams.add(new BasicNameValuePair("Password", apiPass));
 		createSessionPost.setEntity(new UrlEncodedFormEntity(sessionParams));
 
 		HttpResponse sessionResponse = executePostRequest(this.httpClient, createSessionPost);
@@ -146,7 +154,7 @@ public class TripGenerator_WebAPI_refactor {
 		}
 	}
 	
-	protected synchronized double getRandom() {
+	protected double getRandom() {
 		return ThreadLocalRandom.current().nextDouble();
 	}
 	

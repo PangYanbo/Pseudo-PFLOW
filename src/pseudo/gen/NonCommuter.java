@@ -163,7 +163,7 @@ public class NonCommuter extends ActGenerator {
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
-		output = "C:/Data/PseudoPFLOW/";
+		output = prop.getProperty("outputDir", root);
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 

@@ -285,7 +285,7 @@ public class Student extends ActGenerator {
 		prop.load(inputStream);
 
 		root = prop.getProperty("root");
-		output = "C:/Data/PseudoPFLOW/";
+		output = prop.getProperty("outputDir", root);
 		inputDir = prop.getProperty("inputDir");
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
