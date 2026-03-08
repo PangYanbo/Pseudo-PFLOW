@@ -129,7 +129,11 @@ public class TripGenerator_WebAPI_refactor {
 
 	public String createSession() throws Exception{
 
-		HttpPost createSessionPost = new HttpPost(prop.getProperty("api.createSessionURL"));
+		String createSessionURL = prop.getProperty("api.createSessionURL");
+		if (createSessionURL == null) {
+			throw new IllegalStateException("Missing config key: api.createSessionURL");
+		}
+		HttpPost createSessionPost = new HttpPost(createSessionURL);
 
 		String apiUser = System.getenv("PFLOW_API_USER");
 		String apiPass = System.getenv("PFLOW_API_PASS");
@@ -649,7 +653,11 @@ public class TripGenerator_WebAPI_refactor {
 	}
 
 	private static JsonNode getMixedRoute(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) {
-		HttpPost mixedRoutePost = new HttpPost(prop.getProperty("api.getMixedRouteURL"));
+		String mixedRouteURL = prop.getProperty("api.getMixedRouteURL");
+		if (mixedRouteURL == null) {
+			throw new IllegalStateException("Missing config key: api.getMixedRouteURL");
+		}
+		HttpPost mixedRoutePost = new HttpPost(mixedRouteURL);
 
 		List<NameValuePair> mixedRouteParams = new ArrayList<>();
 		for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -694,7 +702,11 @@ public class TripGenerator_WebAPI_refactor {
 	}
 
 	private static JsonNode getRoadRoute(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) throws Exception {
-		HttpPost roadRoutePost = new HttpPost(prop.getProperty("api.getRoadRouteURL"));
+		String roadRouteURL = prop.getProperty("api.getRoadRouteURL");
+		if (roadRouteURL == null) {
+			throw new IllegalStateException("Missing config key: api.getRoadRouteURL");
+		}
+		HttpPost roadRoutePost = new HttpPost(roadRouteURL);
 
 		List<NameValuePair> roadRouteParams = new ArrayList<>();
 		for (Map.Entry<String, String> entry : params.entrySet()) {
