@@ -713,13 +713,7 @@ public class TripGenerator_WebAPI_refactor {
 		String inputDir;
 		String root;
 
-		loadProperties();
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
-		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
+		loadProperties(); // fills static prop field
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
@@ -742,7 +736,7 @@ public class TripGenerator_WebAPI_refactor {
 		Network station = DataAccessor.loadLocationData(stationFile);
 		japan.setStation(station);
 
-		String outputDir = "C:/large/PseudoPFLOW/";
+		String outputDir = prop.getProperty("outputDir", root);
 
 		ArrayList<Integer> prefectureCodes = new ArrayList<>(Arrays.asList(
 				22
@@ -779,7 +773,12 @@ public class TripGenerator_WebAPI_refactor {
 			Double bikeRatio = bikeVal != null ? Double.parseDouble(bikeVal) : 0.0;
 
 			File actDir = new File(String.format("%s/activity/", root), String.valueOf(i));
-			for(File file: Objects.requireNonNull(actDir.listFiles())){
+			File[] actFiles = actDir.listFiles();
+			if (actFiles == null) {
+				System.err.println("Activity directory not found: " + actDir.getAbsolutePath());
+				continue;
+			}
+			for(File file: actFiles){
 				if (file.getName().contains(".csv")) {
 					String tripFileName = outputDir + "trip/" + i + "/trip_" + file.getName().substring(9, 14) + ".csv";
 
