@@ -11,6 +11,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 
 import jp.ac.ut.csis.pflow.geom2.DistanceUtils;
@@ -205,8 +207,11 @@ public class TripGenerator {
 				}
 				this.total++;
 			}
-			}catch(Exception e) {
-				e.printStackTrace();
+			} catch (Throwable t) {
+				System.err.println("[TripGenerator task " + id + "] failed: " + t);
+				t.printStackTrace();
+				if (t instanceof Exception) throw (Exception) t;
+				throw new RuntimeException(t);
 			}
 			// System.out.println(String.format("[%d]-%d-%d",id, error, total));
 			return 0;
@@ -233,12 +238,24 @@ public class TripGenerator {
 		
 		// execute thread processing
 		ExecutorService es = Executors.newFixedThreadPool(numThreads);
+		List<Future<Integer>> futures;
 		try {
-			es.invokeAll(listTasks);
+			futures = es.invokeAll(listTasks);
 			es.shutdown();
-		} catch (Exception exp) {
-			exp.printStackTrace();
-		}		
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Trip generation tasks interrupted", ex);
+		}
+		for (Future<Integer> f : futures) {
+			try {
+				f.get();
+			} catch (ExecutionException ex) {
+				throw new RuntimeException("Trip generation task failed", ex.getCause());
+			} catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("Trip generation task interrupted", ex);
+			}
+		}
 	}
 	
 
