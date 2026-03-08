@@ -764,8 +764,19 @@ public class TripGenerator_WebAPI_refactor {
 			String roadFile = String.format("%sdrm_%02d.tsv", inputDir+"/network/", i);
 
 			Network road = DrmLoader.load(roadFile);
-			Double carRatio = Double.parseDouble(prop.getProperty("car." + i));
-			Double bikeRatio = Double.parseDouble(prop.getProperty("bike." + i));
+			String carKey = "car." + i;
+			String carVal = prop.getProperty(carKey);
+			if (carVal == null) {
+				System.err.println("Missing config key: " + carKey + " -- skipping prefecture " + i);
+				continue;
+			}
+			Double carRatio = Double.parseDouble(carVal);
+			String bikeKey = "bike." + i;
+			String bikeVal = prop.getProperty(bikeKey);
+			if (bikeVal == null) {
+				System.err.println("Missing config key: " + bikeKey + " -- defaulting bike ratio to 0.0 for prefecture " + i);
+			}
+			Double bikeRatio = bikeVal != null ? Double.parseDouble(bikeVal) : 0.0;
 
 			File actDir = new File(String.format("%s/activity/", root), String.valueOf(i));
 			for(File file: Objects.requireNonNull(actDir.listFiles())){
