@@ -249,6 +249,10 @@ public class Commuter extends ActGenerator {
 			{
 				String key = "pref." + i;
 				String relativePath = prop.getProperty(key);
+				if (relativePath == null) {
+					System.err.println("Missing config key: " + key + " -- skipping prefecture " + i);
+					continue;
+				}
 				String maleFile = inputDir+ relativePath + "_trip_labor_male_prob.csv";
 				String femaleFile = inputDir+ relativePath + "_trip_labor_female_prob.csv";
 				Map<EGender, MkChainAccessor> map = new HashMap<>();
@@ -264,7 +268,12 @@ public class Commuter extends ActGenerator {
             File householdDir = new File(String.format("%s/agent/", root), String.valueOf(i));
             // String householdDir = String.format("%s/agent/", root);
 
-            for (File file : householdDir.listFiles()) {
+            File[] houseFiles = householdDir.listFiles();
+            if (houseFiles == null) {
+                System.err.println("Household directory not found: " + householdDir.getAbsolutePath());
+                continue;
+            }
+            for (File file : houseFiles) {
                 if (file.getName().contains(".csv")) {
                     List<HouseHold> households = PersonAccessor.load(file.getAbsolutePath(), new ELabor[]{ELabor.WORKER}, mfactor);
                     worker.assign(households);

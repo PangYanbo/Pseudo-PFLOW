@@ -350,18 +350,22 @@ public class Student extends ActGenerator {
 			// String householdDir = String.format("%s/agent/", root);
 
 			// load markov data
+			String prefKey = "pref." + i;
+			String prefRelPath = prop.getProperty(prefKey);
+			if (prefRelPath == null) {
+				System.err.println("Missing config key: " + prefKey + " -- skipping prefecture " + i);
+				continue;
+			}
 			Map<EMarkov,Map<EGender,MkChainAccessor>> mrkMap = new HashMap<>();
 			{
-				String key = "pref." + i;
-				String relativePath = prop.getProperty(key);
+				String relativePath = prefRelPath;
 				String maleFile = inputDir+ relativePath + "_trip_student1_prob.csv";
 				Map<EGender, MkChainAccessor> map = new HashMap<>();
 				map.put(EGender.MALE, new MkChainAccessor(maleFile));
 				mrkMap.put(EMarkov.STUDENT1, map);
 			}
 			{
-				String key = "pref." + i;
-				String relativePath = prop.getProperty(key);
+				String relativePath = prefRelPath;
 				String maleFile = inputDir+ relativePath + "_trip_student2_prob.csv";
 				Map<EGender, MkChainAccessor> map = new HashMap<>();
 				map.put(EGender.MALE, new MkChainAccessor(maleFile));
@@ -369,7 +373,12 @@ public class Student extends ActGenerator {
 			}
 			Student worker = new Student(japan, mrkMap, mnlAcs, odAcs, schAcs);
 
-			for (File file : householdDir.listFiles()) {
+			File[] houseFiles = householdDir.listFiles();
+			if (houseFiles == null) {
+				System.err.println("Household directory not found: " + householdDir.getAbsolutePath());
+				continue;
+			}
+			for (File file : houseFiles) {
 				if (file.getName().contains(".csv")) {
 					String name = file.getName();
 					String pref = name.substring(7, 9);
