@@ -1,6 +1,5 @@
 package pseudo.aggr;
 
-import pseudo.gen.Commuter;
 
 import java.io.*;
 import java.util.*;

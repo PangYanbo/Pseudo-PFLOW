@@ -259,7 +259,7 @@ public class TrajectoryGenerator {
 
 		String dir;
 
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+		InputStream inputStream = TrajectoryGenerator.class.getClassLoader().getResourceAsStream("config.properties");
 		if (inputStream == null) {
 			throw new FileNotFoundException("config.properties file not found in the classpath");
 		}

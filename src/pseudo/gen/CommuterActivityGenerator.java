@@ -28,11 +28,11 @@ import pseudo.res.GLonLat;
 import pseudo.res.Person;
 import utils.Roulette;
 
-public class Commuter extends ActGenerator {
+public class CommuterActivityGenerator extends AbstractActivityGenerator {
 
 	private final CensusODAccessor odAcs;
 	
-	public Commuter(Country japan,
+	public CommuterActivityGenerator(Country japan,
 					Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 					MNLParamAccessor mnlAcs,
 					CensusODAccessor odAcs) {
@@ -138,7 +138,7 @@ public class Commuter extends ActGenerator {
 					}
 					
 					// Create an activity
-					preAct = Commuter.createActivity(preAct, curloc, i, 3600*24, purpose);
+					preAct = CommuterActivityGenerator.createActivity(preAct, curloc, i, 3600*24, purpose);
 					person.getActivities().add(preAct);
 					
 					prePurpose = purpose;
@@ -189,7 +189,7 @@ public class Commuter extends ActGenerator {
 		String inputDir = null;
 		String root = null;
 
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+		InputStream inputStream = CommuterActivityGenerator.class.getClassLoader().getResourceAsStream("config.properties");
 		if (inputStream == null) {
 			throw new FileNotFoundException("config.properties file not found in the classpath");
 		}
@@ -238,7 +238,7 @@ public class Commuter extends ActGenerator {
 
         // create activities
 
-        String outputDir = String.format("%s/activity/", output);
+        String outputDir = String.format("%s/activity_commuter/", output);
 
         long starttime = System.currentTimeMillis();
         int start = 22;
@@ -260,7 +260,7 @@ public class Commuter extends ActGenerator {
 				map.put(EGender.FEMALE, new MkChainAccessor(femaleFile));
 				mrkMap.put(EMarkov.LABOR, map);
 			}
-			Commuter worker = new Commuter(country, mrkMap, mnlAcs, odAcs);
+			CommuterActivityGenerator worker = new CommuterActivityGenerator(country, mrkMap, mnlAcs, odAcs);
 
             // create directory
             File prefDir = new File(outputDir, String.valueOf(i));
@@ -277,7 +277,7 @@ public class Commuter extends ActGenerator {
                 if (file.getName().contains(".csv")) {
                     List<HouseHold> households = PersonAccessor.load(file.getAbsolutePath(), new ELabor[]{ELabor.WORKER}, mfactor);
                     worker.assign(households);
-                    String resultName = String.format("%s%s%s%s_labor.csv", outputDir, i, "/", file.getName().replaceAll(".csv", ""));
+                    String resultName = String.format("%s%s/%s", outputDir, i, file.getName());
                     PersonAccessor.writeActivities(resultName, households);
                 }
             }

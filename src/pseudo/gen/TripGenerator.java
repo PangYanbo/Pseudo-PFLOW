@@ -267,7 +267,7 @@ public class TripGenerator {
 
 		String dir;
 
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+		InputStream inputStream = TripGenerator.class.getClassLoader().getResourceAsStream("config.properties");
 		if (inputStream == null) {
 			throw new FileNotFoundException("config.properties file not found in the classpath");
 		}
@@ -292,7 +292,7 @@ public class TripGenerator {
 	
 		// create worker
 		TripGenerator worker = new TripGenerator(japan, modeAcs);
-		String inputDir = String.format("%s/activity_merged/", dir);
+		String inputDir = String.format("%s/activity/", dir);
 		String outputDir = String.format("%s/trip/", dir);
 
 		long starttime = System.currentTimeMillis();

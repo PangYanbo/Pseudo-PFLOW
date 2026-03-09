@@ -31,13 +31,13 @@ import pseudo.res.GLonLat;
 import pseudo.res.Person;
 import utils.Roulette;
 
-public class Student extends ActGenerator {
+public class StudentActivityGenerator extends AbstractActivityGenerator {
 
 	private CensusODAccessor odAcs;
 	private SchoolRefAccessor schRefAcs;
 	private static final double SCHOOL_MAX_DISTANCE = 5000;
 	
-	public Student(Country japan,
+	public StudentActivityGenerator(Country japan,
 				   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 				   MNLParamAccessor mnlAcs,
 				   CensusODAccessor odAcs,
@@ -194,7 +194,7 @@ public class Student extends ActGenerator {
 					}
 					
 					// Create an activity
-					preAct = Student.createActivity(preAct, curloc, i, 3600*24, purpose);
+					preAct = StudentActivityGenerator.createActivity(preAct, curloc, i, 3600*24, purpose);
 					person.getActivities().add(preAct);
 					
 					prePurpose = purpose;
@@ -280,7 +280,7 @@ public class Student extends ActGenerator {
 		String output = null;
 		String root = null;
 
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+		InputStream inputStream = StudentActivityGenerator.class.getClassLoader().getResourceAsStream("config.properties");
 		if (inputStream == null) {
 			throw new FileNotFoundException("config.properties file not found in the classpath");
 		}
@@ -342,7 +342,7 @@ public class Student extends ActGenerator {
 		
 		// create activities
 
-		String outputDir = String.format("%s/activity/", output);
+		String outputDir = String.format("%s/activity_student/", output);
 
 		int start = 22;
 		for (int i = start; i <= 22; i++) {
@@ -374,7 +374,7 @@ public class Student extends ActGenerator {
 				map.put(EGender.MALE, new MkChainAccessor(maleFile));
 				mrkMap.put(EMarkov.STUDENT2, map);
 			}
-			Student worker = new Student(japan, mrkMap, mnlAcs, odAcs, schAcs);
+			StudentActivityGenerator worker = new StudentActivityGenerator(japan, mrkMap, mnlAcs, odAcs, schAcs);
 
 			File[] houseFiles = householdDir.listFiles();
 			if (houseFiles == null) {
@@ -403,7 +403,7 @@ public class Student extends ActGenerator {
 								ELabor.JUNIOR_COLLEGE, ELabor.COLLEGE}, mfactor);
 						System.out.println(file.getName() + " " + households.size());
 						worker.assign(households);
-						String resultName = String.format("%s%s%s%s_student.csv", outputDir, i, "/", file.getName().replaceAll(".csv", ""));
+						String resultName = String.format("%s%s/%s", outputDir, i, file.getName());
 						PersonAccessor.writeActivities(resultName, households);
 					}
 				}

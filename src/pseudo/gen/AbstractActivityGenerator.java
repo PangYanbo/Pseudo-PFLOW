@@ -31,7 +31,7 @@ import pseudo.res.Person;
 import pt.MotifAnalyzer;
 import utils.Roulette;
 
-public abstract class ActGenerator {
+public abstract class AbstractActivityGenerator {
 	public Map<Integer, Integer> mapMotif = new HashMap<>();
 	protected Country japan;
 	protected MNLParamAccessor mnlAcs;
@@ -45,7 +45,7 @@ public abstract class ActGenerator {
 	protected static final int MAX_SEARCH_DISTANDE = 20000;
 
 	
-	public ActGenerator(Country japan,
+	public AbstractActivityGenerator(Country japan,
 						MNLParamAccessor mnlAcs,
 						Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap) {
 		this.japan = japan;

@@ -25,9 +25,9 @@ import pseudo.res.GLonLat;
 import pseudo.res.Person;
 import utils.Roulette;
 
-public class NonCommuter extends ActGenerator {
+public class NonCommuterActivityGenerator extends AbstractActivityGenerator {
 
-	public NonCommuter(Country japan,
+	public NonCommuterActivityGenerator(Country japan,
 					   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 					   MNLParamAccessor mnlAcs) {
 		super(japan, mnlAcs, mrkAcsMap);
@@ -100,7 +100,7 @@ public class NonCommuter extends ActGenerator {
 					}
 
 					// Create an activity
-					preAct = NonCommuter.createActivity(preAct, curloc, i, 3600*24, purpose);
+					preAct = NonCommuterActivityGenerator.createActivity(preAct, curloc, i, 3600*24, purpose);
 					person.getActivities().add(preAct);
 
 					prePurpose = purpose;
@@ -157,7 +157,7 @@ public class NonCommuter extends ActGenerator {
 		String root = null;
 		String output = null;
 
-		InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+		InputStream inputStream = NonCommuterActivityGenerator.class.getClassLoader().getResourceAsStream("config.properties");
 		if (inputStream == null) {
 			throw new FileNotFoundException("config.properties file not found in the classpath");
 		}
@@ -206,7 +206,7 @@ public class NonCommuter extends ActGenerator {
 		int mfactor = 1;
 
 		// create activities
-		String outputDir = String.format("%s/activity/", output);
+		String outputDir = String.format("%s/activity_noncommuter/", output);
 
 		long starttime = System.currentTimeMillis();
 		int start = 22;
@@ -243,7 +243,7 @@ public class NonCommuter extends ActGenerator {
 				map.put(EGender.FEMALE, new MkChainAccessor(femaleFile));
 				mrkMap.put(EMarkov.NOLABOR_SENIOR, map);
 			}
-			NonCommuter worker = new NonCommuter(country, mrkMap, mnlAcs);
+			NonCommuterActivityGenerator worker = new NonCommuterActivityGenerator(country, mrkMap, mnlAcs);
 
 			File[] houseFiles = householdDir.listFiles();
 			if (houseFiles == null) {
@@ -255,7 +255,7 @@ public class NonCommuter extends ActGenerator {
 					// load household
 					List<HouseHold> households = PersonAccessor.load(file.getAbsolutePath(), new ELabor[] {ELabor.NO_LABOR}, mfactor);
 					worker.assign(households);
-					String resultName = String.format("%s%s%s%s_nolabor.csv", outputDir, i, "/", file.getName().replaceAll(".csv", ""));
+					String resultName = String.format("%s%s/%s", outputDir, i, file.getName());
 					PersonAccessor.writeActivities(resultName, households);
 				}
 			}

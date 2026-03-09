@@ -5,7 +5,6 @@ import java.util.*;
 
 import jp.ac.ut.csis.pflow.geom2.Mesh;
 import jp.ac.ut.csis.pflow.geom2.MeshUtils;
-import pseudo.gen.Commuter;
 
 public class MeshVolumeCalculator {
 
@@ -93,7 +92,7 @@ public class MeshVolumeCalculator {
 
         String dir;
 
-        InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+        InputStream inputStream = MeshVolumeCalculator.class.getClassLoader().getResourceAsStream("config.properties");
         if (inputStream == null) {
             throw new FileNotFoundException("config.properties file not found in the classpath");
         }

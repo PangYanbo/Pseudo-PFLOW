@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import pseudo.gen.Commuter;
 import pseudo.res.ETransport;
 
 public class LinkVolumeCalculator {
@@ -53,7 +52,7 @@ public class LinkVolumeCalculator {
 	
 	public static void main(String[] args) throws IOException {
         String dir;
-        InputStream inputStream = Commuter.class.getClassLoader().getResourceAsStream("config.properties");
+        InputStream inputStream = LinkVolumeCalculator.class.getClassLoader().getResourceAsStream("config.properties");
         if (inputStream == null) {
             throw new FileNotFoundException("config.properties file not found in the classpath");
         }
