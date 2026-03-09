@@ -59,20 +59,26 @@ public class TripGenerator_WebAPI_refactor {
 	private final CloseableHttpClient httpClient;
 	private final String sessionId;
 
-	private static final double MIN_TRANSIT_DISTANCE = 1000;
-	// private static final double MAX_SEARCH_STATION_DISTANCE = 5000;
-	private static final double FARE_PER_KILOMETER = 10; // Japanese yen, only for vehicle
-	private static final double FARE_PER_HOUR = 1000; // Japanese yen, all modes, possible to extend to prefecture level
-	private static final double FATIGUE_INDEX_WALK = 1.5;
-	private static final double FATIGUE_INDEX_BICYCLE = 1.2;
-	private static final double FARE_INIT = 200; // Japanese yen, only for vehicle
-	private static final double CAR_AVAILABILITY = 0.4; // Parameter for explain people using car without ownership
+	private final double MIN_TRANSIT_DISTANCE;
+	private final double FARE_PER_KILOMETER;
+	private final double FARE_PER_HOUR;
+	private final double FATIGUE_INDEX_WALK;
+	private final double FATIGUE_INDEX_BICYCLE;
+	private final double FARE_INIT;
+	private final double CAR_AVAILABILITY;
 
 
 	public TripGenerator_WebAPI_refactor(Country japan, Network drm, Network railway) throws Exception {
 		super();
         this.drm = drm;
 		this.railway = railway;
+		this.MIN_TRANSIT_DISTANCE = Double.parseDouble(prop.getProperty("min.transit.distance", "1000"));
+		this.FARE_PER_KILOMETER = Double.parseDouble(prop.getProperty("fare.per.kilometer", "10"));
+		this.FARE_PER_HOUR = Double.parseDouble(prop.getProperty("fare.per.hour", "1000"));
+		this.FATIGUE_INDEX_WALK = Double.parseDouble(prop.getProperty("fatigue.walk", "1.5"));
+		this.FATIGUE_INDEX_BICYCLE = Double.parseDouble(prop.getProperty("fatigue.bicycle", "1.2"));
+		this.FARE_INIT = Double.parseDouble(prop.getProperty("fare.init", "200"));
+		this.CAR_AVAILABILITY = Double.parseDouble(prop.getProperty("car.availability", "0.4"));
 		this.sslContext = createSSLContext();
 		this.connManager = createConnManager();
 		this.httpClient = createHttpClient();

@@ -37,7 +37,15 @@ public class CommuterActivityGenerator extends AbstractActivityGenerator {
 					Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 					MNLParamAccessor mnlAcs,
 					CensusODAccessor odAcs) {
-		super(japan, mnlAcs, mrkAcsMap);
+		this(japan, mrkAcsMap, mnlAcs, odAcs, null);
+	}
+
+	public CommuterActivityGenerator(Country japan,
+					Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
+					MNLParamAccessor mnlAcs,
+					CensusODAccessor odAcs,
+					Properties prop) {
+		super(japan, mnlAcs, mrkAcsMap, prop);
 		this.odAcs = odAcs;
 	}
 	
@@ -261,7 +269,7 @@ public class CommuterActivityGenerator extends AbstractActivityGenerator {
 				map.put(EGender.FEMALE, new MkChainAccessor(femaleFile));
 				mrkMap.put(EMarkov.LABOR, map);
 			}
-			CommuterActivityGenerator worker = new CommuterActivityGenerator(country, mrkMap, mnlAcs, odAcs);
+			CommuterActivityGenerator worker = new CommuterActivityGenerator(country, mrkMap, mnlAcs, odAcs, prop);
 
             // create directory
             File prefDir = new File(outputDir, String.valueOf(i));

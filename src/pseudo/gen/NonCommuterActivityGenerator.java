@@ -28,10 +28,21 @@ import utils.Roulette;
 
 public class NonCommuterActivityGenerator extends AbstractActivityGenerator {
 
+	private final int seniorAgeThreshold;
+
 	public NonCommuterActivityGenerator(Country japan,
 					   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 					   MNLParamAccessor mnlAcs) {
-		super(japan, mnlAcs, mrkAcsMap);
+		this(japan, mrkAcsMap, mnlAcs, null);
+	}
+
+	public NonCommuterActivityGenerator(Country japan,
+					   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
+					   MNLParamAccessor mnlAcs,
+					   Properties prop) {
+		super(japan, mnlAcs, mrkAcsMap, prop);
+		this.seniorAgeThreshold = prop != null
+				? Integer.parseInt(prop.getProperty("senior.age.threshold", "65")) : 65;
 	}
 
 	private class ActivityTask implements Callable<Integer> {
@@ -67,7 +78,7 @@ public class NonCommuterActivityGenerator extends AbstractActivityGenerator {
 			EGender gender = person.getGender();
 
 			// Markov Accessor
-			boolean senior = person.getAge() >= 65;
+			boolean senior = person.getAge() >= seniorAgeThreshold;
 			EMarkov type = senior ? EMarkov.NOLABOR_SENIOR : EMarkov.NOLABOR_JUNIOR;
 			MkChainAccessor mkAcs = mrkAcsMap.get(type).get(gender);
 
@@ -244,7 +255,7 @@ public class NonCommuterActivityGenerator extends AbstractActivityGenerator {
 				map.put(EGender.FEMALE, new MkChainAccessor(femaleFile));
 				mrkMap.put(EMarkov.NOLABOR_SENIOR, map);
 			}
-			NonCommuterActivityGenerator worker = new NonCommuterActivityGenerator(country, mrkMap, mnlAcs);
+			NonCommuterActivityGenerator worker = new NonCommuterActivityGenerator(country, mrkMap, mnlAcs, prop);
 
 			File[] houseFiles = householdDir.listFiles();
 			if (houseFiles == null) {

@@ -140,7 +140,7 @@ public class ActivityGenerator {
 				mrkMapCommuter.put(EMarkov.LABOR, map);
 			}
 			CommuterActivityGenerator commuter = new CommuterActivityGenerator(
-					country, mrkMapCommuter, mnlAcsCommuter, odAcs);
+					country, mrkMapCommuter, mnlAcsCommuter, odAcs, prop);
 
 			// --- NonCommuter markov ---
 			Map<EMarkov, Map<EGender, MkChainAccessor>> mrkMapNonCommuter = new HashMap<>();
@@ -161,7 +161,7 @@ public class ActivityGenerator {
 				mrkMapNonCommuter.put(EMarkov.NOLABOR_SENIOR, map);
 			}
 			NonCommuterActivityGenerator nonCommuter = new NonCommuterActivityGenerator(
-					country, mrkMapNonCommuter, mnlAcsNonCommuter);
+					country, mrkMapNonCommuter, mnlAcsNonCommuter, prop);
 
 			// --- Student markov ---
 			Map<EMarkov, Map<EGender, MkChainAccessor>> mrkMapStudent = new HashMap<>();
@@ -178,7 +178,7 @@ public class ActivityGenerator {
 				mrkMapStudent.put(EMarkov.STUDENT2, map);
 			}
 			StudentActivityGenerator student = new StudentActivityGenerator(
-					country, mrkMapStudent, mnlAcsStudent, odAcs, schAcs);
+					country, mrkMapStudent, mnlAcsStudent, odAcs, schAcs, prop);
 
 			// iterate city household files
 			File householdDir = new File(String.format("%s/agent/", root), String.valueOf(i));

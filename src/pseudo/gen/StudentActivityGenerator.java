@@ -36,17 +36,27 @@ public class StudentActivityGenerator extends AbstractActivityGenerator {
 
 	private CensusODAccessor odAcs;
 	private SchoolRefAccessor schRefAcs;
-	private static final double SCHOOL_MAX_DISTANCE = 5000;
-	
+	private final double SCHOOL_MAX_DISTANCE;
+
 	public StudentActivityGenerator(Country japan,
 				   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
 				   MNLParamAccessor mnlAcs,
 				   CensusODAccessor odAcs,
 				   SchoolRefAccessor schRefAcs) {
-		super(japan, mnlAcs,mrkAcsMap);
-		
+		this(japan, mrkAcsMap, mnlAcs, odAcs, schRefAcs, null);
+	}
+
+	public StudentActivityGenerator(Country japan,
+				   Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
+				   MNLParamAccessor mnlAcs,
+				   CensusODAccessor odAcs,
+				   SchoolRefAccessor schRefAcs,
+				   Properties prop) {
+		super(japan, mnlAcs, mrkAcsMap, prop);
 		this.odAcs = odAcs;
 		this.schRefAcs = schRefAcs;
+		this.SCHOOL_MAX_DISTANCE = prop != null
+				? Double.parseDouble(prop.getProperty("school.max.distance", "5000")) : 5000;
 	}
 	
 	private class ActivityTask implements Callable<Integer> {
@@ -375,7 +385,7 @@ public class StudentActivityGenerator extends AbstractActivityGenerator {
 				map.put(EGender.MALE, new MkChainAccessor(maleFile));
 				mrkMap.put(EMarkov.STUDENT2, map);
 			}
-			StudentActivityGenerator worker = new StudentActivityGenerator(japan, mrkMap, mnlAcs, odAcs, schAcs);
+			StudentActivityGenerator worker = new StudentActivityGenerator(japan, mrkMap, mnlAcs, odAcs, schAcs, prop);
 
 			File[] houseFiles = householdDir.listFiles();
 			if (houseFiles == null) {

@@ -42,12 +42,20 @@ public class TrajectoryGenerator {
 	private Network road;
 	private Network railway;
 
-	private static final double MAX_WALK_DISTANCE = 3000;
-	private static final double MAX_SEARCH_STATAION_DISTANCE = 5000;
-	
-	public TrajectoryGenerator(Network road, Network railway){
+	private final double MAX_WALK_DISTANCE;
+	private final double MAX_SEARCH_STATAION_DISTANCE;
+
+	public TrajectoryGenerator(Network road, Network railway) {
+		this(road, railway, null);
+	}
+
+	public TrajectoryGenerator(Network road, Network railway, Properties prop) {
 		this.road = road;
 		this.railway = railway;
+		this.MAX_WALK_DISTANCE = prop != null
+				? Double.parseDouble(prop.getProperty("max.walk.distance", "3000")) : 3000;
+		this.MAX_SEARCH_STATAION_DISTANCE = prop != null
+				? Double.parseDouble(prop.getProperty("max.station.search.distance", "5000")) : 5000;
 	}	
 
 	public class RoutingTask implements Callable<Integer>{
@@ -311,7 +319,7 @@ public class TrajectoryGenerator {
 			for (Map.Entry<String, List<File>> e : map.entrySet()) {
 				System.out.print(e.getKey());
 				long starttime = System.currentTimeMillis();
-				TrajectoryGenerator worker = new TrajectoryGenerator(road, railway);
+				TrajectoryGenerator worker = new TrajectoryGenerator(road, railway, prop);
 				String header = String.format("%strajectory_%s", outputDir+ i +"/", e.getKey());
 				// String header = String.format("%sperson_%s", outputDir, e.getKey());
 				Path p = Paths.get(header+"_0001_000000.csv");

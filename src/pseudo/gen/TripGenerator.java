@@ -41,14 +41,22 @@ public class TripGenerator {
 	private ModeAccessor modeAcs;
 	private Country japan;
 
-	private static final double MAX_WALK_DISTANCE = 3000;
-	private static final double MAX_SEARCH_STATAION_DISTANCE = 5000;
-	
-	
+	private final double MAX_WALK_DISTANCE;
+	private final double MAX_SEARCH_STATAION_DISTANCE;
+
+
 	public TripGenerator(Country japan, ModeAccessor modeAcs) {
+		this(japan, modeAcs, null);
+	}
+
+	public TripGenerator(Country japan, ModeAccessor modeAcs, Properties prop) {
 		super();
 		this.japan = japan;
 		this.modeAcs = modeAcs;
+		this.MAX_WALK_DISTANCE = prop != null
+				? Double.parseDouble(prop.getProperty("max.walk.distance", "3000")) : 3000;
+		this.MAX_SEARCH_STATAION_DISTANCE = prop != null
+				? Double.parseDouble(prop.getProperty("max.station.search.distance", "5000")) : 5000;
 	}	
 	
 	protected double getRandom() {
@@ -293,7 +301,7 @@ public class TripGenerator {
 		ModeAccessor modeAcs = new ModeAccessor(modeFile);
 
 		// create worker
-		TripGenerator worker = new TripGenerator(japan, modeAcs);
+		TripGenerator worker = new TripGenerator(japan, modeAcs, prop);
 		String inputDir = String.format("%s/activity/", dir);
 		String outputDir = String.format("%s/trip/", prop.getProperty("outputDir", dir));
 

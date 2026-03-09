@@ -39,20 +39,33 @@ public abstract class AbstractActivityGenerator {
 	
 	protected static final Dijkstra routing = new Dijkstra();
 	
-	protected static final long TRAIN_SERVICE_START_TIME = 5 * 3600;
-	protected static final int timeInterval = 15 * 60;
+	protected final long TRAIN_SERVICE_START_TIME;
+	protected final int timeInterval;
 	
-	protected static final int MAX_SEARCH_DISTANDE = 20000;
+	protected final int MAX_SEARCH_DISTANDE;
 
 	
 	public AbstractActivityGenerator(Country japan,
 						MNLParamAccessor mnlAcs,
 						Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap) {
+		this(japan, mnlAcs, mrkAcsMap, null);
+	}
+
+	public AbstractActivityGenerator(Country japan,
+						MNLParamAccessor mnlAcs,
+						Map<EMarkov,Map<EGender,MkChainAccessor>> mrkAcsMap,
+						Properties prop) {
 		this.japan = japan;
 		this.mnlAcs = mnlAcs;
 		this.mrkAcsMap = mrkAcsMap;
+		this.TRAIN_SERVICE_START_TIME = prop != null
+				? Long.parseLong(prop.getProperty("train.service.start", "18000")) : 18000L;
+		this.timeInterval = prop != null
+				? Integer.parseInt(prop.getProperty("activity.time.interval", "900")) : 900;
+		this.MAX_SEARCH_DISTANDE = prop != null
+				? Integer.parseInt(prop.getProperty("max.destination.search.distance", "20000")) : 20000;
 	}
-	
+
 	protected double getRandom() {
 		return ThreadLocalRandom.current().nextDouble();
 	}
