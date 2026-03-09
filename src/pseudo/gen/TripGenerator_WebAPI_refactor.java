@@ -155,8 +155,7 @@ public class TripGenerator_WebAPI_refactor {
 			System.out.println(sessionResponseBody);
 			return sessionResponseBody.split(",")[1].trim().replace("\r", "").replace("\n", "");
 		} else {
-			System.out.println("Failed to create session: " + sessionResponse.getStatusLine().getStatusCode());
-			return "";
+			throw new RuntimeException("Failed to create WebAPI session: HTTP " + sessionResponse.getStatusLine().getStatusCode());
 		}
 	}
 	
@@ -383,13 +382,17 @@ public class TripGenerator_WebAPI_refactor {
 				previousTransportation = currentTransportation;
 			}
 
-		//  处理最后一段站点数据
-		//	if (firstStationNode != null) {
-		//		processStationSegment(firstStationNode, lastStationNode);
-		//	}
-			if (nodes.size()==0){
-				System.out.println("error is here");
-				System.out.println("stop!");
+			// process final station segment
+			if (firstStationNode != null && lastStationNode != null && !firstStationNode.equals(lastStationNode)) {
+				LinkCost linkCost = new LinkCost(Transport.RAILWAY);
+				Dijkstra routing = new Dijkstra(linkCost);
+				Route route = routing.getRoute(railway, firstStationNode.getLon(), firstStationNode.getLat(), lastStationNode.getLon(), lastStationNode.getLat());
+				if (route != null && route.numNodes() > 0) {
+					nodes.addAll(route.listNodes());
+				}
+			}
+			if (nodes.isEmpty()) {
+				throw new RuntimeException("extractNodesFromMixedResults: no nodes extracted from WebAPI response");
 			}
 			return nodes;
 		}
@@ -407,12 +410,7 @@ public class TripGenerator_WebAPI_refactor {
 
 				if (currentMode != lastMode) {
 					if (currentSubtrip.size() > 1) {
-						if(lastMode==1){
-							long traveltime = 300;
-							currentTime += traveltime;
-						}else{
-							currentTime +=  mixedResultsHolder[0].path("total_transport_time").asLong() * 60;
-						}
+						currentTime += estimateSegmentTime(currentSubtrip, lastMode);
 						addTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, person, purpose);
 					}
 					currentSubtrip = new ArrayList<>();
@@ -422,6 +420,23 @@ public class TripGenerator_WebAPI_refactor {
 				currentSubtrip.add(feature);
 				prevNode = feature;
 			}
+			// emit final segment (was missing — last segment after final mode change was dropped)
+			if (currentSubtrip.size() > 1) {
+				currentTime += estimateSegmentTime(currentSubtrip, lastMode);
+				addTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, person, purpose);
+			}
+		}
+
+		private long estimateSegmentTime(List<JsonNode> subtrip, int mode) {
+			JsonNode first = subtrip.get(0).path("geometry").path("coordinates");
+			JsonNode last = subtrip.get(subtrip.size() - 1).path("geometry").path("coordinates");
+			if (!first.isArray() || !last.isArray()) return 300L;
+			LonLat a = new LonLat(first.get(0).asDouble(), first.get(1).asDouble());
+			LonLat b = new LonLat(last.get(0).asDouble(), last.get(1).asDouble());
+			double distance = DistanceUtils.distance(a, b);
+			double speed = Speed.get(getTransport(mode));
+			if (speed <= 0) speed = Speed.WALK;
+			return Math.max(1L, (long)(distance / speed));
 		}
 
 		private void addTripForSubtrip(List<JsonNode> currentSubtrip, int lastMode, boolean publicTransit, long depTime, Person person, EPurpose purpose) {
@@ -546,7 +561,6 @@ public class TripGenerator_WebAPI_refactor {
 								configureCalendar(cl, endDate);
 								endDate = cl.getTime();
 								points.add(new SPoint(pre.getLocation().getLon(), pre.getLocation().getLat(), endDate, ETransport.NOT_DEFINED, EPurpose.HOME));
-								person.addTrajectory(points);
 							}
 						} else {
 							person.addTrip(new Trip(ETransport.NOT_DEFINED, next.getPurpose(), next.getStartTime(), pre.getLocation(), pre.getLocation()));
@@ -555,7 +569,6 @@ public class TripGenerator_WebAPI_refactor {
 							configureCalendar(cl, startDate);
 							startDate = cl.getTime();
 							points.add(new SPoint(pre.getLocation().getLon(), pre.getLocation().getLat(), startDate, ETransport.NOT_DEFINED, next.getPurpose()));
-							person.addTrajectory(points);
 						}
 
 						pre = next;
@@ -563,9 +576,7 @@ public class TripGenerator_WebAPI_refactor {
 				}
 				person.addTrajectory(points);
 			} catch (Exception e){
-				System.err.println("Exception at person: " + person);
-				e.printStackTrace();
-
+				throw new RuntimeException("Exception processing person: " + person, e);
 			}
 
 			return 0;
