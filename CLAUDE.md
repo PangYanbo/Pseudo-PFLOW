@@ -42,23 +42,22 @@ The pipeline runs in sequential steps, each as a Java `main()` class:
 | Step | Entry Point | Input → Output |
 |------|-------------|----------------|
 | 1 | `pseudo.pre.PersonGenerator` | Household CSV → Person CSV (assigns worker/student/no-worker roles) |
-| 2 | `pseudo.gen.Commuter` | Census + markov + MNL params → Activity CSV (workers) |
-| 3 | `pseudo.gen.Student` | Census + school refs → Activity CSV (students) |
-| 4 | `pseudo.gen.NonCommuter` | Census + markov → Activity CSV (non-workers) |
-| 5 | `pseudo.gen.TripGenerator` | Activity CSV → Trip CSV (mode choice) |
-| 6 | `pseudo.gen.TrajectoryGenerator` | Trip CSV + road/rail networks → Trajectory CSV |
-| 7 | `pseudo.gen.FileJoinner` | Trajectory CSV → ZIP per city |
-| 8 | `pseudo.aggr.MeshVolumeCalculator` | Trajectory → 500m mesh population per 10 min |
-| 9 | `pseudo.aggr.LinkVolumeCalculator` | Trajectory → Link volume per hour |
+| 2 | `pseudo.gen.ActivityGenerator` | Census + markov + MNL → Activity CSV (all labor types, unified) |
+| 3 | `pseudo.gen.TripGenerator` | Activity CSV → Trip CSV (mode choice) |
+| 4 | `pseudo.gen.TrajectoryGenerator` | Trip CSV + road/rail networks → Trajectory CSV |
+| 5 | `pseudo.gen.FileJoinner` | Trajectory CSV → ZIP per city |
+| 6 | `pseudo.aggr.MeshVolumeCalculator` | Trajectory → 500m mesh population per 10 min |
+| 7 | `pseudo.aggr.LinkVolumeCalculator` | Trajectory → Link volume per hour |
 
-Steps 2–4 run in parallel (one per labor type). Steps 2–4 outputs are merged before step 5.
+Step 2 runs all labor types (commuter, non-commuter, student) internally and writes combined output.
+Specialized standalone generators (`CommuterActivityGenerator`, `NonCommuterActivityGenerator`, `StudentActivityGenerator`) are available for debugging/tuning individual labor types.
 
 ## Package Structure
 
 - **`pseudo.res`** — Core domain objects: `Person`, `HouseHold`, `Activity`, `Trip`, `SPoint` (trajectory point), `City`, `Country` (container for all cities + station network). Enums: `ELabor`, `EGender`, `ETransport`, `EPurpose`, `ECity`, `EPTCity`.
 - **`pseudo.acs`** — CSV data loaders/accessors: `DataAccessor` (city/station/facility loading), `PersonAccessor` (read/write person/activity/trip files), `MkChainAccessor` (Markov chain), `MNLParamAccessor` (MNL coefficients), `ModeAccessor` (transport mode probabilities), `MotifAccessor`.
 - **`pseudo.pre`** — Preprocessing: census processing (`CensusKakou1–3`), `PersonGenerator` (household→person).
-- **`pseudo.gen`** — Generation: activity generators (`Commuter`, `Student`, `NonCommuter`), `TripGenerator`, `TrajectoryGenerator`, WebAPI-based routing variants.
+- **`pseudo.gen`** — Generation: `ActivityGenerator` (unified mainline), specialized generators (`CommuterActivityGenerator`, `NonCommuterActivityGenerator`, `StudentActivityGenerator`), `TripGenerator`, `TrajectoryGenerator`, WebAPI-based routing variants.
 - **`pseudo.aggr`** — Aggregation: `MeshVolumeCalculator`, `LinkVolumeCalculator`, `Sampling`.
 - **`pt`** — PT survey analysis: `MarkovAnalyzer`, `MotifAnalyzer`, `OutingAnalyzer` (used for calibration, not pipeline execution).
 - **`network`** — Network loaders: `DrmLoader` (road DRM format), `RailLoader` (railway TSV).
