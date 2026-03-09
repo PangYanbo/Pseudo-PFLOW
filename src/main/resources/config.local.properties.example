@@ -1,0 +1,9 @@
+# Machine-specific config overrides (copy to config.local.properties)
+# This file is loaded AFTER config.properties and pref-specific configs.
+# It is gitignored — never commit config.local.properties.
+#
+# Uncomment and set values as needed:
+
+# root=/path/to/PseudoPFLOW/
+# inputDir=/path/to/PseudoPFLOW/processing/
+# outputDir=/tmp/pflow_smoke/

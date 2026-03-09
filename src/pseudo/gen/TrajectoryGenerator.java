@@ -36,6 +36,7 @@ import pseudo.res.ETransport;
 import pseudo.res.Person;
 import pseudo.res.SPoint;
 import pseudo.res.Trip;
+import utils.ConfigLoader;
 
 public class TrajectoryGenerator {
 	private Network road;
@@ -257,29 +258,29 @@ public class TrajectoryGenerator {
 	
 	public static void main(String[] args) throws IOException {
 
-		String dir;
+		System.out.println("TrajectoryGenerator: start");
 
-		InputStream inputStream = TrajectoryGenerator.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
+		int start = 1;
+		int end = 47;
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
 		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
 
-		dir = prop.getProperty("root");
+		Properties prop = ConfigLoader.load(start);
+
+		String dir = prop.getProperty("root");
+		String inputBase = prop.getProperty("inputDir", dir + "/processing/");
 		System.out.println("Root Directory: " + dir);
-		String roaddir = String.format("%sprocessing/network/", dir);
-		
-		String railFile = String.format("%srailnetwork.tsv", roaddir);
+		String roaddir = String.format("%snetwork/", inputBase);
 
+		String railFile = String.format("%srailnetwork.tsv", roaddir);
 		Network railway = RailLoader.load(railFile);
 
-		String inputDir = String.format("%strip/", dir);
-		String outputDir = String.format("%strajectory/", dir);
+		String outputRoot = prop.getProperty("outputDir", dir);
+		String inputDir = String.format("%strip/", outputRoot);
+		String outputDir = String.format("%strajectory/", outputRoot);
 
 		// create trajectories
-        int start = 22;
-        int end = 22;
 		for (int i = start; i <= end; i++) {
 			// create directory
 			File prefDir = new File(outputDir, String.valueOf(i));

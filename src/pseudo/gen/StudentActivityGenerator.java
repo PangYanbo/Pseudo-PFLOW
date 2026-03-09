@@ -29,6 +29,7 @@ import pseudo.res.HouseHold;
 import pseudo.res.Country;
 import pseudo.res.GLonLat;
 import pseudo.res.Person;
+import utils.ConfigLoader;
 import utils.Roulette;
 
 public class StudentActivityGenerator extends AbstractActivityGenerator {
@@ -280,12 +281,13 @@ public class StudentActivityGenerator extends AbstractActivityGenerator {
 		String output = null;
 		String root = null;
 
-		InputStream inputStream = StudentActivityGenerator.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
+		int start = 1;
+		int end = 47;
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
 		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
+
+		Properties prop = ConfigLoader.load(start);
 
 		root = prop.getProperty("root");
 		output = prop.getProperty("outputDir", root);
@@ -344,8 +346,7 @@ public class StudentActivityGenerator extends AbstractActivityGenerator {
 
 		String outputDir = String.format("%s/activity_student/", output);
 
-		int start = 22;
-		for (int i = start; i <= 22; i++) {
+		for (int i = start; i <= end; i++) {
 			// create directory
 			File prefDir = new File(outputDir, String.valueOf(i));
 			System.out.println("Start prefecture:" + i + prefDir.mkdirs());

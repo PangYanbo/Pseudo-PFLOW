@@ -38,6 +38,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import pseudo.acs.DataAccessor;
 import pseudo.acs.PersonAccessor;
 import pseudo.res.*;
+import utils.ConfigLoader;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -762,29 +763,23 @@ public class TripGenerator_WebAPI_refactor {
 		}
 	}
 	private static Properties prop;
-	private static void loadProperties() throws Exception {
-		InputStream inputStream = TripGenerator_WebAPI_refactor.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
-		}
-		prop = new Properties();
-		prop.load(inputStream);
-	}
 
 	public static void main(String[] args) throws Exception {
 
-		String inputDir;
-		String root;
+		int start = 1;
+		int end = 47;
+		int mfactor = 1;
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
+		}
 
-		loadProperties(); // fills static prop field
+		prop = ConfigLoader.load(start);
 
-		root = prop.getProperty("root");
-		inputDir = prop.getProperty("inputDir");
+		String root = prop.getProperty("root");
+		String inputDir = prop.getProperty("inputDir");
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 		
-		int mfactor = 1;
-
 		Country japan = new Country();
 
 		// load data
@@ -801,18 +796,7 @@ public class TripGenerator_WebAPI_refactor {
 
 		String outputDir = prop.getProperty("outputDir", root);
 
-		ArrayList<Integer> prefectureCodes = new ArrayList<>(Arrays.asList(
-				22
-//				11
-//				22, 16, 28,
-//				13,14,12,11,
-//				1,2,3,5,6,8,10,15,
-//				17,20,21,23,24,25,
-//				30,33,36,37,39,40,41,42,
-//				44,46
-		));
-
-		for (int i: prefectureCodes){
+		for (int i = start; i <= end; i++){
 
 			File tripDir = new File(outputDir+"trip/", String.valueOf(i));
 			File trajDir = new File(outputDir+"trajectory/", String.valueOf(i));

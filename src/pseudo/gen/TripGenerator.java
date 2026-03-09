@@ -1,7 +1,6 @@
 package pseudo.gen;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -34,6 +33,7 @@ import pseudo.res.Country;
 import pseudo.res.Person;
 import pseudo.res.Speed;
 import pseudo.res.Trip;
+import utils.ConfigLoader;
 import utils.Roulette;
 
 public class TripGenerator {
@@ -261,43 +261,43 @@ public class TripGenerator {
 
 	public static void main(String[] args) throws IOException {
 		
-		Country japan = new Country();
-		
-		System.out.println("start");
+		System.out.println("TripGenerator: start");
 
-		String dir;
-
-		InputStream inputStream = TripGenerator.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
-		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
-
-		dir = prop.getProperty("root");
-		System.out.println("Root Directory: " + dir);
-		
+		int start = 1;
+		int end = 47;
 		int mfactor = 1;
-		
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
+		}
+		if (args.length >= 2) {
+			mfactor = Integer.parseInt(args[1]);
+		}
+
+		Properties prop = ConfigLoader.load(start);
+
+		String dir = prop.getProperty("root");
+		String inputBase = prop.getProperty("inputDir", dir + "/processing/");
+		System.out.println("Root Directory: " + dir);
+
+		Country japan = new Country();
+
 		// load data
-		String cityFile = String.format("%s/processing/city_boundary.csv", dir);
+		String cityFile = String.format("%scity_boundary.csv", inputBase);
 		DataAccessor.loadCityData(cityFile, japan);
-		
-		String stationFile = String.format("%s/processing/base_station.csv", dir);
+
+		String stationFile = String.format("%sbase_station.csv", inputBase);
 		Network station = DataAccessor.loadLocationData(stationFile);
 		japan.setStation(station);
-	
-		String modeFile = String.format("%s/processing/act_transport.csv", dir);
+
+		String modeFile = String.format("%sact_transport.csv", inputBase);
 		ModeAccessor modeAcs = new ModeAccessor(modeFile);
-	
+
 		// create worker
 		TripGenerator worker = new TripGenerator(japan, modeAcs);
 		String inputDir = String.format("%s/activity/", dir);
-		String outputDir = String.format("%s/trip/", dir);
+		String outputDir = String.format("%s/trip/", prop.getProperty("outputDir", dir));
 
 		long starttime = System.currentTimeMillis();
-		int start = 22;
-        int end = 22;
 		for (int i = start; i <= end; i++){
 			File prefDir = new File(outputDir, String.valueOf(i));
 			System.out.println("Start prefecture:" + i + prefDir.mkdirs());

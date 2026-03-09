@@ -8,6 +8,7 @@ import org.opengis.referencing.FactoryException;
 import pseudo.acs.CensusODAccessor;
 import pseudo.acs.DataAccessor;
 import pseudo.acs.MNLParamAccessor;
+import utils.ConfigLoader;
 import pseudo.acs.MkChainAccessor;
 import pseudo.acs.PersonAccessor;
 import pseudo.acs.SchoolRefAccessor;
@@ -37,14 +38,19 @@ public class ActivityGenerator {
 		System.out.println("ActivityGenerator: start");
 		long starttime = System.currentTimeMillis();
 
-		// load config
-		InputStream inputStream = ActivityGenerator.class.getClassLoader()
-				.getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
+		// determine prefecture range from args
+		int start = 1;
+		int end = 47;
+		int mfactor = 1;
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
 		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
+		if (args.length >= 2) {
+			mfactor = Integer.parseInt(args[1]);
+		}
+
+		// load config (base → pref-specific → local → external)
+		Properties prop = ConfigLoader.load(start);
 
 		String root = prop.getProperty("root");
 		String inputDir = prop.getProperty("inputDir");
@@ -108,18 +114,7 @@ public class ActivityGenerator {
 		// school reference accessor for student
 		SchoolRefAccessor schAcs = new SchoolRefAccessor();
 
-		int mfactor = 1;
 		String outputDir = String.format("%s/activity/", output);
-
-		// determine prefecture range from args or default
-		int start = 1;
-		int end = 47;
-		if (args.length >= 1) {
-			start = end = Integer.parseInt(args[0]);
-		}
-		if (args.length >= 2) {
-			mfactor = Integer.parseInt(args[1]);
-		}
 
 		for (int i = start; i <= end; i++) {
 			String prefKey = "pref." + i;

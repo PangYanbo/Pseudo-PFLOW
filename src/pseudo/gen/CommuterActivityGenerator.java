@@ -26,6 +26,7 @@ import pseudo.res.HouseHold;
 import pseudo.res.Country;
 import pseudo.res.GLonLat;
 import pseudo.res.Person;
+import utils.ConfigLoader;
 import utils.Roulette;
 
 public class CommuterActivityGenerator extends AbstractActivityGenerator {
@@ -189,16 +190,17 @@ public class CommuterActivityGenerator extends AbstractActivityGenerator {
 		String inputDir = null;
 		String root = null;
 
-		InputStream inputStream = CommuterActivityGenerator.class.getClassLoader().getResourceAsStream("config.properties");
-		if (inputStream == null) {
-			throw new FileNotFoundException("config.properties file not found in the classpath");
+		int start = 1;
+		int end = 47;
+		if (args.length >= 1) {
+			start = end = Integer.parseInt(args[0]);
 		}
-		Properties prop = new Properties();
-		prop.load(inputStream);
+
+		Properties prop = ConfigLoader.load(start);
 
 		root = prop.getProperty("root");
 		inputDir = prop.getProperty("inputDir");
-		output = prop.getProperty("outputDir", root); // smoke test: set outputDir=/tmp/pflow_smoke/ in config to override
+		output = prop.getProperty("outputDir", root);
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 
@@ -241,8 +243,7 @@ public class CommuterActivityGenerator extends AbstractActivityGenerator {
         String outputDir = String.format("%s/activity_commuter/", output);
 
         long starttime = System.currentTimeMillis();
-        int start = 22;
-        for (int i = start; i <= 22; i++) {
+        for (int i = start; i <= end; i++) {
 
 			// load markov chains
 			Map<EMarkov, Map<EGender, MkChainAccessor>> mrkMap = new HashMap<>();
