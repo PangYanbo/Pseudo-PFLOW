@@ -301,13 +301,14 @@ public class TripGenerator_WebAPI_refactor {
 			long travelTime = mixedTime;
 			long depTime = next.getStartTime() - travelTime;
 
-			List<Node> nodes = extractNodesFromMixedResults(mixedResultsHolder);
+			List<ETransport> nodeModes = new ArrayList<>();
+			List<Node> nodes = extractNodesFromMixedResults(mixedResultsHolder, nodeModes);
 			boolean publicTransit = mixedResultsHolder[0].path("num_station").asInt() > 0;
 			List<JsonNode> currentSubtrip = new ArrayList<>();
 			int lastMode = determineInitialTransportMode(mixedResultsHolder);
 
 			processMixedTransportFeatures(mixedResultsHolder, currentSubtrip, lastMode, publicTransit, depTime, person, purpose);
-			addTimeStampedSubpoints(nodes, startTime, endTime, nextMode, purpose, subpoints);
+			addTimeStampedSubpoints(nodes, nodeModes, startTime, endTime, purpose, subpoints);
 			points.addAll(subpoints);
 		}
 
@@ -328,13 +329,13 @@ public class TripGenerator_WebAPI_refactor {
 //			return nodes;
 //		}
 
-		private List<Node> extractNodesFromMixedResults(JsonNode[] mixedResultsHolder) {
+		private List<Node> extractNodesFromMixedResults(JsonNode[] mixedResultsHolder, List<ETransport> nodeModes) {
 			List<Node> nodes = new ArrayList<>();
-			Node firstStationNode = null; // 记录当前段的第一个站点 Node
-			Node lastStationNode = null;  // 记录当前段的最后一个站点 Node
+			Node firstStationNode = null;
+			Node lastStationNode = null;
 
 			JsonNode routeData = mixedResultsHolder[0].path("features");
-			boolean previousHasStation = false; // 记录前一个站点是否有 stationName
+			boolean previousHasStation = false;
 			int previousTransportation = -1;
 
 			for (JsonNode feature : routeData) {
@@ -354,6 +355,7 @@ public class TripGenerator_WebAPI_refactor {
 						if (route != null && route.numNodes() > 0){
 							List<Node> rail_nodes = route.listNodes();
 							nodes.addAll(rail_nodes);
+							for (int j = 0; j < rail_nodes.size(); j++) nodeModes.add(ETransport.TRAIN);
 						}
 					}
 					firstStationNode = null;
@@ -364,7 +366,8 @@ public class TripGenerator_WebAPI_refactor {
 					double lon = coordinates.get(0).asDouble();
 					double lat = coordinates.get(1).asDouble();
 					Node node = new Node(feature.path("properties").path("id").asText(), lon, lat);
-					nodes.add(node); // 直接添加该节点
+					nodes.add(node);
+					nodeModes.add(getTransport(currentTransportation));
 				}
 
 				if (currentHasStation && coordinates.isArray()) {
@@ -373,12 +376,12 @@ public class TripGenerator_WebAPI_refactor {
 					Node node = new Node(feature.path("properties").path("id").asText(), lon, lat);
 
 					if (firstStationNode == null || previousTransportation != currentTransportation) {
-						firstStationNode = node; // 记录当前段的第一个站点
+						firstStationNode = node;
 					}
-					lastStationNode = node; // 持续更新为最后一个站点
+					lastStationNode = node;
 				}
 
-				previousHasStation = currentHasStation; // 更新状态
+				previousHasStation = currentHasStation;
 				previousTransportation = currentTransportation;
 			}
 
@@ -388,7 +391,9 @@ public class TripGenerator_WebAPI_refactor {
 				Dijkstra routing = new Dijkstra(linkCost);
 				Route route = routing.getRoute(railway, firstStationNode.getLon(), firstStationNode.getLat(), lastStationNode.getLon(), lastStationNode.getLat());
 				if (route != null && route.numNodes() > 0) {
-					nodes.addAll(route.listNodes());
+					List<Node> rail_nodes = route.listNodes();
+					nodes.addAll(rail_nodes);
+					for (int j = 0; j < rail_nodes.size(); j++) nodeModes.add(ETransport.TRAIN);
 				}
 			}
 			if (nodes.isEmpty()) {
@@ -474,6 +479,24 @@ public class TripGenerator_WebAPI_refactor {
 		private void addTimeStampedSubpoints(List<Node> nodes, long startTime, long endTime, ETransport nextMode, EPurpose purpose, List<SPoint> subpoints) {
 			Map<Node, Date> timeMap = TrajectoryUtils.putTimeStamp(nodes, new Date(startTime * 1000), new Date(endTime * 1000));
 			addSubpoints(nodes, timeMap, nextMode, purpose, subpoints);
+		}
+
+		private void addTimeStampedSubpoints(List<Node> nodes, List<ETransport> nodeModes, long startTime, long endTime, EPurpose purpose, List<SPoint> subpoints) {
+			Map<Node, Date> timeMap = TrajectoryUtils.putTimeStamp(nodes, new Date(startTime * 1000), new Date(endTime * 1000));
+			addSubpoints(nodes, timeMap, nodeModes, purpose, subpoints);
+		}
+
+		private void addSubpoints(List<Node> nodes, Map<Node, Date> timeMap, List<ETransport> nodeModes, EPurpose purpose, List<SPoint> subpoints) {
+			for (int idx = 0; idx < nodes.size(); idx++) {
+				Node node = nodes.get(idx);
+				Date date = timeMap.get(node);
+				Calendar cl = Calendar.getInstance();
+				configureCalendar(cl, date);
+				date = cl.getTime();
+				ETransport mode = idx < nodeModes.size() ? nodeModes.get(idx) : ETransport.MIX;
+				SPoint point = new SPoint(node.getLon(), node.getLat(), date, mode, purpose);
+				subpoints.add(point);
+			}
 		}
 
 		public String convertSecondsToHHMM(double totalSeconds) {
@@ -812,6 +835,9 @@ public class TripGenerator_WebAPI_refactor {
 			}
 			Double bikeRatio = bikeVal != null ? Double.parseDouble(bikeVal) : 0.0;
 
+			// one session per prefecture (was per city file)
+			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway);
+
 			File actDir = new File(String.format("%s/activity/", root), String.valueOf(i));
 			File[] actFiles = actDir.listFiles();
 			if (actFiles == null) {
@@ -831,7 +857,6 @@ public class TripGenerator_WebAPI_refactor {
 //					}
 
 					long starttime = System.currentTimeMillis();
-					TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway);
 					List<Person> agents = PersonAccessor.loadActivity(file.getAbsolutePath(), mfactor, carRatio, bikeRatio);
 					System.out.printf("%s%n", file.getName());
 					worker.generate(agents);
