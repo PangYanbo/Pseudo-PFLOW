@@ -63,12 +63,12 @@ If you face issues with Run Configuration:
 ## 0. Data prosessing
 ### Processing steps
 Household data -> Person data-> Activity data -> Trip data -> Trajectory dat -> Aggregated data
- 
+
 ### Dataset for processing
 Please download the dataset from S3://pseudo-pflow/processing<br>
 The dasetset was created from various statistical data.<br>
 Each processing step references files in the dataset.<br>
- 
+
 ## 1. Create person data from household data developed by Kajiwara
 Each person is assigned a role(workder, student, no-worker).
 * Entry point: pseudo.pre.PersonGenerator
@@ -79,7 +79,7 @@ Each person is assigned a role(workder, student, no-worker).
   * househould data  developed by Kajiwara
 * Output
   * Person data in CSV format
-  
+
 ## 2. Create activity data for commuter
 * Entry point: pseudo.gen.Commuter
 * Input
@@ -94,7 +94,7 @@ Each person is assigned a role(workder, student, no-worker).
   * labor_params.csv: MNL parmaters calculate for location choice from PT data
 * Output
   * Activity data in CSV format
-  
+
 ## 3. Create activity data for student
 * Entry point: pseudo.gen.Student
 * Input
@@ -112,7 +112,7 @@ Each person is assigned a role(workder, student, no-worker).
   * secondary_*.csv:　Map of households and school destinations
 * Output
   * Activity data in CSV format
-  
+
 ## 4. Create activity data for no-worker
 * Entry point: pseudo.gen.NonCommuter
 * Input
@@ -138,7 +138,7 @@ Each person is assigned a role(workder, student, no-worker).
   * activity: Result of No. 3, 4, 5
 * Output
   * Trip data in CSV format
- 
+
 ## 6. Create trajectory data from trip data
 * Entry point: pseudo.gen.TrajectoryGenerator
 * Input
@@ -148,7 +148,7 @@ Each person is assigned a role(workder, student, no-worker).
   * trip: Result of No. 5
 * Output
   * Trajectory data in CSV format
- 
+
 ## 7. Create zip file of trajectory for each city
 * Entry point: pseudo.gen.TripJoinner
 * Input
@@ -168,15 +168,4 @@ Each person is assigned a role(workder, student, no-worker).
 * Input
   * trajectory : Result of No. 6
 * Output
-  * The number of people passing by each link every hou
-
-
-
-
-
-
- 
-
-
-
-
+  * The number of people passing by each link every hour
