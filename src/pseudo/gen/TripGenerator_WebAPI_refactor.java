@@ -160,7 +160,9 @@ public class TripGenerator_WebAPI_refactor {
 			String sessionResponseBody = EntityUtils.toString(sessionResponse.getEntity());
 			System.out.println("Session created successfully");
 			System.out.println(sessionResponseBody);
-			return sessionResponseBody.split(",")[1].trim().replace("\r", "").replace("\n", "");
+			String[] parts = sessionResponseBody.split(",");
+			String sessionId = (parts.length > 1 ? parts[1] : parts[0]).trim().replace("\r", "").replace("\n", "");
+			return sessionId;
 		} else {
 			throw new RuntimeException("Failed to create WebAPI session: HTTP " + sessionResponse.getStatusLine().getStatusCode());
 		}
