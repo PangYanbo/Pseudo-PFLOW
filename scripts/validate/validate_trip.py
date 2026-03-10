@@ -27,10 +27,18 @@ LON_RANGE = (120.0, 155.0)
 LAT_RANGE = (20.0, 50.0)
 VALID_TRANSPORTS = {0, 1, 2, 3, 4, 5, 6, 7}
 TRANSPORT_NAMES = {0: "NOT_DEFINED", 1: "WALK", 2: "BICYCLE", 3: "CAR", 4: "TRAIN", 5: "BUS", 6: "MIX", 7: "COMMUNITY"}
-WARN_NOT_DEFINED_RATIO = 0.05
-WARN_ZERO_DISTANCE_RATIO = 0.20
-MAX_TRIP_DISTANCE_KM = 2000  # extreme outlier threshold
-MAX_DEP_TIME = 86400 * 2  # 48h
+MAX_TRIP_DISTANCE_KM = 2000
+MAX_DEP_TIME = 86400 * 2
+
+# NOT_DEFINED classification:
+#   "placeholder" = NOT_DEFINED + zero distance (origin == destination within 1m)
+#   "unexpected"  = NOT_DEFINED + nonzero distance (real movement with no mode assigned)
+ZERO_DISTANCE_THRESHOLD_KM = 0.001  # ~1 meter
+WARN_UNEXPECTED_ND_RATIO = 0.01     # >1% unexpected NOT_DEFINED → WARN
+FAIL_UNEXPECTED_ND_RATIO = 0.05     # >5% unexpected NOT_DEFINED → FAIL
+
+# Mode share: FAIL if any real-movement mode is missing entirely when >500 trips
+WARN_DOMINANT_MODE_RATIO = 0.95     # single mode >95% of real trips → WARN
 
 
 def haversine_km(lon1, lat1, lon2, lat2):
@@ -85,14 +93,17 @@ def validate_file(filepath, activity_person_ids=None):
         result["errors"].append(f"Row count {row_count} < {MIN_ROW_COUNT}")
         return result
 
+    # ── Parse ────────────────────────────────────────────────────────────
     persons = defaultdict(list)
     transport_counter = Counter()
     bad_coords = 0
-    zero_distance = 0
     extreme_distance = 0
-    not_defined_count = 0
     bad_dep_times = 0
     distances_km = []
+
+    # NOT_DEFINED breakdown
+    nd_placeholder = 0   # zero-distance: stay-at-home / return-to-same-location
+    nd_unexpected = 0     # nonzero-distance: real movement with no mode
 
     for row in rows:
         try:
@@ -106,41 +117,72 @@ def validate_file(filepath, activity_person_ids=None):
             parse_errors += 1
             continue
 
-        persons[pid].append({"dep_time": dep_time, "transport": transport})
+        dist = haversine_km(olon, olat, dlon, dlat)
+        persons[pid].append({"dep_time": dep_time, "transport": transport, "dist_km": dist})
         transport_counter[transport] += 1
+        distances_km.append(dist)
 
         if transport == 0:
-            not_defined_count += 1
+            if dist < ZERO_DISTANCE_THRESHOLD_KM:
+                nd_placeholder += 1
+            else:
+                nd_unexpected += 1
 
         if not (LON_RANGE[0] <= olon <= LON_RANGE[1] and LAT_RANGE[0] <= olat <= LAT_RANGE[1]):
             bad_coords += 1
         if not (LON_RANGE[0] <= dlon <= LON_RANGE[1] and LAT_RANGE[0] <= dlat <= LAT_RANGE[1]):
             bad_coords += 1
 
-        dist = haversine_km(olon, olat, dlon, dlat)
-        distances_km.append(dist)
-        if dist < 0.001:
-            zero_distance += 1
         if dist > MAX_TRIP_DISTANCE_KM:
             extreme_distance += 1
-
         if dep_time < 0 or dep_time > MAX_DEP_TIME:
             bad_dep_times += 1
 
+    # ── Stats ────────────────────────────────────────────────────────────
     num_persons = len(persons)
     trip_counts = [len(v) for v in persons.values()]
     result["stats"]["num_persons"] = num_persons
     result["stats"]["avg_trips_per_person"] = round(sum(trip_counts) / num_persons, 2) if num_persons else 0
     result["stats"]["max_trips_per_person"] = max(trip_counts) if trip_counts else 0
-    result["stats"]["transport_distribution"] = {
-        TRANSPORT_NAMES.get(k, str(k)): v for k, v in sorted(transport_counter.items())
+
+    # Mode share (always reported)
+    mode_share = {}
+    for tid in sorted(transport_counter.keys()):
+        name = TRANSPORT_NAMES.get(tid, str(tid))
+        count = transport_counter[tid]
+        pct = count / row_count * 100
+        mode_share[name] = {"count": count, "pct": round(pct, 1)}
+    result["stats"]["mode_share"] = mode_share
+
+    # NOT_DEFINED breakdown (always reported)
+    nd_total = nd_placeholder + nd_unexpected
+    result["stats"]["not_defined"] = {
+        "total": nd_total,
+        "placeholder_zero_dist": nd_placeholder,
+        "unexpected_nonzero_dist": nd_unexpected,
+        "total_pct": round(nd_total / row_count * 100, 1) if row_count else 0,
+        "placeholder_pct": round(nd_placeholder / row_count * 100, 1) if row_count else 0,
+        "unexpected_pct": round(nd_unexpected / row_count * 100, 1) if row_count else 0,
     }
 
-    if distances_km:
-        result["stats"]["distance_km_median"] = round(sorted(distances_km)[len(distances_km) // 2], 2)
-        result["stats"]["distance_km_p95"] = round(sorted(distances_km)[int(len(distances_km) * 0.95)], 2)
+    # Real-movement mode share (excluding placeholder NOT_DEFINED)
+    real_trips = row_count - nd_placeholder
+    if real_trips > 0:
+        real_mode_share = {}
+        for tid in sorted(transport_counter.keys()):
+            name = TRANSPORT_NAMES.get(tid, str(tid))
+            count = transport_counter[tid]
+            if tid == 0:
+                count = nd_unexpected  # only unexpected NOT_DEFINED in real share
+            real_mode_share[name] = {"count": count, "pct": round(count / real_trips * 100, 1)}
+        result["stats"]["real_movement_mode_share"] = real_mode_share
 
-    # Departure time ordering per person
+    if distances_km:
+        sorted_d = sorted(distances_km)
+        result["stats"]["distance_km_median"] = round(sorted_d[len(sorted_d) // 2], 2)
+        result["stats"]["distance_km_p95"] = round(sorted_d[int(len(sorted_d) * 0.95)], 2)
+
+    # ── Departure time ordering ──────────────────────────────────────────
     time_violations = 0
     for pid, trips in persons.items():
         for i in range(1, len(trips)):
@@ -148,7 +190,7 @@ def validate_file(filepath, activity_person_ids=None):
                 time_violations += 1
                 break
 
-    # Person coverage vs activity
+    # ── Person coverage vs activity ──────────────────────────────────────
     if activity_person_ids is not None:
         trip_pids = set(persons.keys())
         missing = activity_person_ids - trip_pids
@@ -160,7 +202,7 @@ def validate_file(filepath, activity_person_ids=None):
         if extra:
             result["stats"]["extra_vs_activity"] = len(extra)
 
-    # Checks
+    # ── Checks ───────────────────────────────────────────────────────────
     if bad_coords > 0:
         pct = bad_coords / (row_count * 2) * 100
         msg = f"{bad_coords} coordinate values outside Japan bbox ({pct:.1f}%)"
@@ -169,19 +211,31 @@ def validate_file(filepath, activity_person_ids=None):
         else:
             result["warnings"].append(msg)
 
-    if not_defined_count > 0:
-        ratio = not_defined_count / row_count
-        msg = f"{not_defined_count} trips ({ratio*100:.1f}%) with NOT_DEFINED transport"
-        if ratio > WARN_NOT_DEFINED_RATIO:
+    # NOT_DEFINED: placeholder is noted, unexpected is WARN/FAIL
+    if nd_placeholder > 0:
+        result["warnings"].append(
+            f"{nd_placeholder} placeholder NOT_DEFINED trips ({nd_placeholder/row_count*100:.1f}%, zero-distance)"
+        )
+    if nd_unexpected > 0:
+        ratio = nd_unexpected / row_count
+        msg = f"{nd_unexpected} unexpected NOT_DEFINED trips ({ratio*100:.1f}%, nonzero distance)"
+        if ratio > FAIL_UNEXPECTED_ND_RATIO:
             result["errors"].append(msg)
+        elif ratio > WARN_UNEXPECTED_ND_RATIO:
+            result["warnings"].append(msg)
         else:
             result["warnings"].append(msg)
 
-    if zero_distance > 0:
-        ratio = zero_distance / row_count
-        msg = f"{zero_distance} trips ({ratio*100:.1f}%) with zero distance"
-        if ratio > WARN_ZERO_DISTANCE_RATIO:
-            result["warnings"].append(msg)
+    # Mode dominance check on real-movement trips
+    if real_trips > 500:
+        for tid, count in transport_counter.items():
+            if tid == 0:
+                continue
+            if count / real_trips > WARN_DOMINANT_MODE_RATIO:
+                name = TRANSPORT_NAMES.get(tid, str(tid))
+                result["warnings"].append(
+                    f"{name} dominates at {count/real_trips*100:.1f}% of real-movement trips"
+                )
 
     if extreme_distance > 0:
         result["warnings"].append(f"{extreme_distance} trips exceed {MAX_TRIP_DISTANCE_KM}km")
@@ -239,10 +293,8 @@ def main():
 
     results = []
     for f in files:
-        # Try to cross-reference with activity file
         act_pids = None
         if activity_dir:
-            # Extract city code from filename: trip_XXXXX.csv -> XXXXX
             name = f.stem
             city_code = name.replace("trip_", "")
             act_pids = load_activity_person_ids(activity_dir, city_code)
@@ -250,7 +302,9 @@ def main():
         r = validate_file(f, act_pids)
         results.append(r)
         status = r["status"]
-        print(f"  [{status:4s}] {f.name}: {r['stats'].get('num_persons', 0)} persons, {r['stats'].get('row_count', 0)} rows")
+        nd_info = r["stats"].get("not_defined", {})
+        nd_str = f"ND:{nd_info.get('placeholder_zero_dist',0)}p+{nd_info.get('unexpected_nonzero_dist',0)}u"
+        print(f"  [{status:4s}] {f.name}: {r['stats'].get('num_persons', 0)} persons, {r['stats'].get('row_count', 0)} rows, {nd_str}")
 
     summary = {
         "type": "trip",

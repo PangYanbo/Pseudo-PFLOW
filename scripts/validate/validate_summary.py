@@ -81,17 +81,45 @@ def render_section(title, report):
                 lines.append("")
 
         elif report["type"] == "trip":
-            agg_transport = {}
+            # Aggregate mode share (count-based)
+            agg_mode = {}
             for r in all_files:
-                for k, v in r["stats"].get("transport_distribution", {}).items():
-                    agg_transport[k] = agg_transport.get(k, 0) + v
-            if agg_transport:
+                for name, info in r["stats"].get("mode_share", {}).items():
+                    agg_mode[name] = agg_mode.get(name, 0) + info.get("count", 0)
+            if agg_mode:
                 lines.append("### Transport mode distribution (aggregate)")
                 lines.append("")
-                total_trips = sum(agg_transport.values())
-                for k in sorted(agg_transport.keys()):
-                    pct = agg_transport[k] / total_trips * 100
-                    lines.append(f"- {k}: {agg_transport[k]:,} ({pct:.1f}%)")
+                total_trips = sum(agg_mode.values())
+                for k in sorted(agg_mode.keys()):
+                    pct = agg_mode[k] / total_trips * 100
+                    lines.append(f"- {k}: {agg_mode[k]:,} ({pct:.1f}%)")
+                lines.append("")
+
+            # Aggregate NOT_DEFINED breakdown
+            agg_nd_total = sum(r["stats"].get("not_defined", {}).get("total", 0) for r in all_files)
+            agg_nd_placeholder = sum(r["stats"].get("not_defined", {}).get("placeholder_zero_dist", 0) for r in all_files)
+            agg_nd_unexpected = sum(r["stats"].get("not_defined", {}).get("unexpected_nonzero_dist", 0) for r in all_files)
+            total_rows = report.get("total_rows", 0) or 1
+            if agg_nd_total > 0:
+                lines.append("### NOT_DEFINED breakdown (aggregate)")
+                lines.append("")
+                lines.append(f"- Total NOT_DEFINED: {agg_nd_total:,} ({agg_nd_total/total_rows*100:.1f}%)")
+                lines.append(f"  - Placeholder (zero-distance): {agg_nd_placeholder:,} ({agg_nd_placeholder/total_rows*100:.1f}%)")
+                lines.append(f"  - Unexpected (nonzero-distance): {agg_nd_unexpected:,} ({agg_nd_unexpected/total_rows*100:.1f}%)")
+                lines.append("")
+
+            # Aggregate real-movement mode share
+            agg_real = {}
+            for r in all_files:
+                for name, info in r["stats"].get("real_movement_mode_share", {}).items():
+                    agg_real[name] = agg_real.get(name, 0) + info.get("count", 0)
+            if agg_real:
+                lines.append("### Real-movement mode share (excluding placeholder NOT_DEFINED)")
+                lines.append("")
+                total_real = sum(agg_real.values())
+                for k in sorted(agg_real.keys()):
+                    pct = agg_real[k] / total_real * 100 if total_real else 0
+                    lines.append(f"- {k}: {agg_real[k]:,} ({pct:.1f}%)")
                 lines.append("")
 
         elif report["type"] == "trajectory":
