@@ -2,10 +2,9 @@
 .idea/
 *.iml
 
-# Java build artifacts (except for lib/)
+# Java build artifacts
 *.class
 *.jar
-!lib/*.jar
 
 # Log files
 *.log
@@ -49,6 +48,9 @@ __pycache__/
 
 # Machine-local config (never commit)
 config.local.properties
+
+# Local archive (decommissioned artifacts kept for reference)
+archive_local/
 
 # Intermediate or large data files (optional)
 *.csv
