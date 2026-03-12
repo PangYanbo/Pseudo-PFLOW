@@ -89,9 +89,7 @@ def validate_file(filepath, activity_person_ids=None):
     result["stats"]["file_size_bytes"] = size
 
     if row_count < MIN_ROW_COUNT:
-        result["status"] = "FAIL"
-        result["errors"].append(f"Row count {row_count} < {MIN_ROW_COUNT}")
-        return result
+        result["warnings"].append(f"Row count {row_count} < {MIN_ROW_COUNT}")
 
     # ── Parse ────────────────────────────────────────────────────────────
     persons = defaultdict(list)

@@ -48,6 +48,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TripGenerator_WebAPI_refactor {
 
@@ -66,7 +67,15 @@ public class TripGenerator_WebAPI_refactor {
 	private final double FATIGUE_INDEX_BICYCLE;
 	private final double FARE_INIT;
 	private final double CAR_AVAILABILITY;
+	private final String appDate;
 
+	// Mixed-route diagnostic counters (shared across TripTask threads)
+	private final AtomicInteger mixedQueryCount = new AtomicInteger();
+	private final AtomicInteger mixedNoStationCount = new AtomicInteger();
+	private final AtomicInteger mixedNoFareCount = new AtomicInteger();
+	private final AtomicInteger mixedTransitAvailable = new AtomicInteger();
+	private final AtomicInteger mixedSelectedCount = new AtomicInteger();
+	private final AtomicInteger mixedBelowDistThreshold = new AtomicInteger();
 
 	public TripGenerator_WebAPI_refactor(Country japan, Network drm, Network railway) throws Exception {
 		super();
@@ -79,6 +88,8 @@ public class TripGenerator_WebAPI_refactor {
 		this.FATIGUE_INDEX_BICYCLE = Double.parseDouble(prop.getProperty("fatigue.bicycle", "1.2"));
 		this.FARE_INIT = Double.parseDouble(prop.getProperty("fare.init", "200"));
 		this.CAR_AVAILABILITY = Double.parseDouble(prop.getProperty("car.availability", "0.4"));
+		this.appDate = prop.getProperty("api.appDate", "20240401");
+		System.out.println("WebAPI AppDate: " + this.appDate);
 		this.sslContext = createSSLContext();
 		this.connManager = createConnManager();
 		this.httpClient = createHttpClient();
@@ -259,14 +270,23 @@ public class TripGenerator_WebAPI_refactor {
 			}
 
 			if(distance>MIN_TRANSIT_DISTANCE){
+				mixedQueryCount.incrementAndGet();
 				mixedResultsHolder[0] = getMixedRoute(httpClient, sessionId, mixedparams);
-				boolean publicTransit = mixedResultsHolder[0].path("num_station").asInt() > 0 && mixedResultsHolder[0].path("fare").asInt() > 0;
-				if (publicTransit) {
+				int numStation = mixedResultsHolder[0].path("num_station").asInt();
+				int fare = mixedResultsHolder[0].path("fare").asInt();
+				boolean publicTransit = numStation > 0 && fare > 0;
+				if (!publicTransit) {
+					if (numStation == 0) mixedNoStationCount.incrementAndGet();
+					if (fare == 0) mixedNoFareCount.incrementAndGet();
+				} else {
+					mixedTransitAvailable.incrementAndGet();
 					double mixedfare = mixedResultsHolder[0].get("fare").asDouble();
 					double mixedtime = mixedResultsHolder[0].get("total_time").asDouble(); // Travel time from WebAPI is in minute
 					double mixedcost = mixedfare + mixedtime / 60 * FARE_PER_HOUR;
 					choices.put(ETransport.MIX, mixedcost);
 				}
+			} else {
+				mixedBelowDistThreshold.incrementAndGet();
 			}
 
 			nextMode = choices.entrySet()
@@ -274,6 +294,10 @@ public class TripGenerator_WebAPI_refactor {
 					.min(Comparator.comparing(Map.Entry::getValue))
 					.map(Map.Entry::getKey)
 					.orElse(ETransport.NOT_DEFINED);
+
+			if (nextMode == ETransport.MIX) {
+				mixedSelectedCount.incrementAndGet();
+			}
 
 			return nextMode;
 		}
@@ -630,7 +654,7 @@ public class TripGenerator_WebAPI_refactor {
 //			}
 			mixedparams.put("TransportCode", "1");
 
-			mixedparams.put("AppDate", "20240401");
+			mixedparams.put("AppDate", appDate);
 			mixedparams.put("AppTime", convertSecondsToHHMM(startTime));
 			return mixedparams;
 		}
@@ -833,7 +857,16 @@ public class TripGenerator_WebAPI_refactor {
 			// one session per prefecture (was per city file)
 			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway);
 
-			File actDir = new File(String.format("%s/activity/", root), String.valueOf(i));
+			// Try outputDir first (chained mainline), fall back to root (legacy/external activity data)
+			File actDir = new File(outputDir + "activity/", String.valueOf(i));
+			if (!actDir.isDirectory()) {
+				actDir = new File(root + "activity/", String.valueOf(i));
+				if (actDir.isDirectory()) {
+					System.out.println("Activity input: " + actDir.getAbsolutePath() + " (fallback to root)");
+				}
+			} else {
+				System.out.println("Activity input: " + actDir.getAbsolutePath());
+			}
 			File[] actFiles = actDir.listFiles();
 			if (actFiles == null) {
 				System.err.println("Activity directory not found: " + actDir.getAbsolutePath());
@@ -841,9 +874,16 @@ public class TripGenerator_WebAPI_refactor {
 			}
 			for(File file: actFiles){
 				if (file.getName().contains(".csv")) {
-					String tripFileName = outputDir + "trip/" + i + "/trip_" + file.getName().substring(9, 14) + ".csv";
+					// Extract city code: "person_22101.csv" -> "22101", "person_22101_labor.csv" -> "22101"
+					String baseName = file.getName().replace(".csv", "");
+					String cityCode = baseName.substring("person_".length());
+					int underscorePos = cityCode.indexOf('_');
+					if (underscorePos > 0) {
+						cityCode = cityCode.substring(0, underscorePos);
+					}
+					String tripFileName = outputDir + "trip/" + i + "/trip_" + cityCode + ".csv";
 
-					String trajectoryFileName = outputDir + "trajectory/" + i + "/trajectory_" + file.getName().substring(9,14) + ".csv";
+					String trajectoryFileName = outputDir + "trajectory/" + i + "/trajectory_" + cityCode + ".csv";
 
 
 					// Check if the files already exist
@@ -861,6 +901,17 @@ public class TripGenerator_WebAPI_refactor {
 					System.out.println(file.getName() + ": " + (endtime - starttime));
 				}
 			}
+
+			// Print mixed-route diagnostics for this prefecture
+			System.out.println("--- Mixed-route diagnostics (pref " + i + ") ---");
+			System.out.println("  AppDate: " + worker.appDate);
+			System.out.println("  Trips below distance threshold (<" + worker.MIN_TRANSIT_DISTANCE + "m): " + worker.mixedBelowDistThreshold.get());
+			System.out.println("  Mixed-route API queries: " + worker.mixedQueryCount.get());
+			System.out.println("  Transit available (num_station>0 && fare>0): " + worker.mixedTransitAvailable.get());
+			System.out.println("  No station (num_station==0): " + worker.mixedNoStationCount.get());
+			System.out.println("  No fare (fare==0): " + worker.mixedNoFareCount.get());
+			System.out.println("  MIX mode selected (won cost comparison): " + worker.mixedSelectedCount.get());
+			System.out.println("---");
 
 		}
 		System.out.println("end");
