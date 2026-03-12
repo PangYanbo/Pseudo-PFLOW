@@ -780,6 +780,9 @@ public class TripGenerator_WebAPI_refactor {
 		if (args.length >= 1) {
 			start = end = Integer.parseInt(args[0]);
 		}
+		if (args.length >= 2) {
+			mfactor = Integer.parseInt(args[1]);
+		}
 
 		prop = ConfigLoader.load(start);
 
