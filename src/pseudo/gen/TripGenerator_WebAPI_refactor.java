@@ -858,14 +858,17 @@ public class TripGenerator_WebAPI_refactor {
 			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway);
 
 			// Try outputDir first (chained mainline), fall back to root (legacy/external activity data)
+			// When chained, activity is already sampled — use mfactor=1 to avoid double-sampling
 			File actDir = new File(outputDir + "activity/", String.valueOf(i));
+			int loadScale = 1; // chained: already sampled
 			if (!actDir.isDirectory()) {
 				actDir = new File(root + "activity/", String.valueOf(i));
+				loadScale = mfactor; // fallback: apply sampling here
 				if (actDir.isDirectory()) {
-					System.out.println("Activity input: " + actDir.getAbsolutePath() + " (fallback to root)");
+					System.out.println("Activity input: " + actDir.getAbsolutePath() + " (fallback to root, mfactor=" + mfactor + ")");
 				}
 			} else {
-				System.out.println("Activity input: " + actDir.getAbsolutePath());
+				System.out.println("Activity input: " + actDir.getAbsolutePath() + " (chained, mfactor=1)");
 			}
 			File[] actFiles = actDir.listFiles();
 			if (actFiles == null) {
@@ -892,7 +895,7 @@ public class TripGenerator_WebAPI_refactor {
 //					}
 
 					long starttime = System.currentTimeMillis();
-					List<Person> agents = PersonAccessor.loadActivity(file.getAbsolutePath(), mfactor, carRatio, bikeRatio);
+					List<Person> agents = PersonAccessor.loadActivity(file.getAbsolutePath(), loadScale, carRatio, bikeRatio);
 					System.out.printf("%s%n", file.getName());
 					worker.generate(agents);
 					PersonAccessor.writeTrips(tripFileName, agents);
