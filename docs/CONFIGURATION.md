@@ -96,7 +96,16 @@ Used by `TripGenerator_WebAPI_refactor` for mode choice probability weighting. R
 api.createSessionURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession
 api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
 api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
+api.appDate=20240401
+api.maxRadius=1000
+api.maxRoutes=9
+api.transportCode=3
 ```
+
+- `api.appDate`: timetable date for transit routing (YYYYMMDD)
+- `api.maxRadius`: station search radius in meters (required by API; default 1000)
+- `api.maxRoutes`: max route alternatives returned (required by API; default 9)
+- `api.transportCode`: `3` = bus-oriented routing (default), `1` = train-oriented routing. The API returns routes matching the requested transport type; bus routes include walk+bus segments, train routes include walk+rail segments. Fails fast if set to any other value.
 
 Credentials are **not** in config files. Set as environment variables:
 

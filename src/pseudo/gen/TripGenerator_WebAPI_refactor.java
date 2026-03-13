@@ -70,6 +70,7 @@ public class TripGenerator_WebAPI_refactor {
 	private final String appDate;
 	private final String maxRadius;
 	private final String maxRoutes;
+	private final String transportCode;
 
 	// Mixed-route diagnostic counters (shared across TripTask threads)
 	private final AtomicInteger mixedQueryCount = new AtomicInteger();
@@ -93,6 +94,10 @@ public class TripGenerator_WebAPI_refactor {
 		this.appDate = prop.getProperty("api.appDate", "20240401");
 		this.maxRadius = prop.getProperty("api.maxRadius", "1000");
 		this.maxRoutes = prop.getProperty("api.maxRoutes", "9");
+		this.transportCode = prop.getProperty("api.transportCode", "3");
+		if (!"1".equals(transportCode) && !"3".equals(transportCode)) {
+			throw new IllegalArgumentException("api.transportCode must be 1 (train) or 3 (bus), got: " + transportCode);
+		}
 		this.sslContext = createSSLContext();
 		this.connManager = createConnManager();
 		this.httpClient = createHttpClient();
@@ -344,7 +349,9 @@ public class TripGenerator_WebAPI_refactor {
 			int lastMode = determineInitialTransportMode(mixedResultsHolder);
 
 			processMixedTransportFeatures(mixedResultsHolder, currentSubtrip, lastMode, publicTransit, depTime, person, purpose);
-			addTimeStampedSubpoints(nodes, nodeModes, startTime, endTime, purpose, subpoints);
+			if (!nodes.isEmpty()) {
+				addTimeStampedSubpoints(nodes, nodeModes, startTime, endTime, purpose, subpoints);
+			}
 			points.addAll(subpoints);
 		}
 
@@ -432,9 +439,7 @@ public class TripGenerator_WebAPI_refactor {
 					for (int j = 0; j < rail_nodes.size(); j++) nodeModes.add(ETransport.TRAIN);
 				}
 			}
-			if (nodes.isEmpty()) {
-				throw new RuntimeException("extractNodesFromMixedResults: no nodes extracted from WebAPI response");
-			}
+			// nodes may be empty for bus-only routes without railway network coverage
 			return nodes;
 		}
 
@@ -650,12 +655,7 @@ public class TripGenerator_WebAPI_refactor {
 			params.put("GoalLatitude", String.valueOf(dll.getLat()));
 
 			Map<String, String> mixedparams = new HashMap<>(params);
-//			if(getRandom()>0.5){
-//				mixedparams.put("TransportCode", "1");
-//			}else {
-//				mixedparams.put("TransportCode", "3");
-//			}
-			mixedparams.put("TransportCode", "1");
+			mixedparams.put("TransportCode", transportCode);
 
 			mixedparams.put("AppDate", appDate);
 			mixedparams.put("AppTime", convertSecondsToHHMM(startTime));

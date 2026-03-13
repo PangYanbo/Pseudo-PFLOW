@@ -99,7 +99,7 @@ mvn exec:java -Dexec.mainClass="pseudo.gen.TripGenerator_WebAPI_refactor" -Dexec
 
 Reads from `outputDir/activity/<pref>/`, writes trips to `outputDir/trip/<pref>/` and trajectories to `outputDir/trajectory/<pref>/`.
 
-This step creates a WebAPI session per prefecture, routes each trip through the CSIS road/rail network API, and produces both trip and trajectory data in a single pass.
+This step creates a WebAPI session per prefecture, routes each trip through the CSIS road/transit network API, and produces both trip and trajectory data in a single pass. Transit routing uses `api.transportCode=3` (bus-oriented) by default; set to `1` for train-oriented routing. See `docs/CONFIGURATION.md` for all API parameters.
 
 **Legacy offline alternative** (no WebAPI needed):
 
