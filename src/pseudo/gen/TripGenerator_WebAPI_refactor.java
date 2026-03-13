@@ -68,6 +68,8 @@ public class TripGenerator_WebAPI_refactor {
 	private final double FARE_INIT;
 	private final double CAR_AVAILABILITY;
 	private final String appDate;
+	private final String maxRadius;
+	private final String maxRoutes;
 
 	// Mixed-route diagnostic counters (shared across TripTask threads)
 	private final AtomicInteger mixedQueryCount = new AtomicInteger();
@@ -89,7 +91,8 @@ public class TripGenerator_WebAPI_refactor {
 		this.FARE_INIT = Double.parseDouble(prop.getProperty("fare.init", "200"));
 		this.CAR_AVAILABILITY = Double.parseDouble(prop.getProperty("car.availability", "0.4"));
 		this.appDate = prop.getProperty("api.appDate", "20240401");
-		System.out.println("WebAPI AppDate: " + this.appDate);
+		this.maxRadius = prop.getProperty("api.maxRadius", "1000");
+		this.maxRoutes = prop.getProperty("api.maxRoutes", "9");
 		this.sslContext = createSSLContext();
 		this.connManager = createConnManager();
 		this.httpClient = createHttpClient();
@@ -656,6 +659,8 @@ public class TripGenerator_WebAPI_refactor {
 
 			mixedparams.put("AppDate", appDate);
 			mixedparams.put("AppTime", convertSecondsToHHMM(startTime));
+			mixedparams.put("MaxRadius", maxRadius);
+			mixedparams.put("MaxRoutes", maxRoutes);
 			return mixedparams;
 		}
 

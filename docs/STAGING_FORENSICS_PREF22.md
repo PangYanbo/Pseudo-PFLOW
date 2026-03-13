@@ -4,41 +4,43 @@ Date: 2026-03-13. Mainline: `TripGenerator_WebAPI_refactor`.
 
 ---
 
-## 1. Missing public transit — BLOCKER (API-side)
+## 1. Missing public transit — RESOLVED
 
-**Diagnosis**: Zero TRAIN/BUS/MIX trips in all output.
+**Symptom**: Zero TRAIN/BUS/MIX trips in all output. GetMixedRoute API returned error code `11024`.
 
-### Root cause: GetMixedRoute API returns error code `11024`
+### Root cause: Missing request parameters `MaxRadius` and `MaxRoutes`
 
-Raw API probe (2026-03-13) confirmed the `GetMixedRoute` endpoint returns the bare string `11024` (not JSON) for **every request**, regardless of:
-- AppDate (tested: 20231001, 20240401, 20250401, 20260313)
-- OD pair (tested: Hamamatsu local, Hamamatsu→Shizuoka 70km, Shinjuku→Tokyo)
-- TransportCode (tested: 1=train, 3=bus, omitted)
-- UnitTypeCode (tested: 1, 2, omitted)
-- Session cookie method (cookie dict, header, POST body, JSESSIONID)
-- AppDate/AppTime presence (tested: with and without)
+The GetMixedRoute endpoint requires explicit `MaxRadius` and `MaxRoutes` parameters. Without them:
+- Error `11024` = MaxRadius not set (default should be 1000)
+- Error `11023` = MaxRoutes set incorrectly (default should be 9)
 
-Meanwhile, `GetRoadRoute` works correctly with the same session, returning valid GeoJSON with `status: 1`.
+The code was constructing requests without these parameters, so the API rejected every query. Jackson silently parsed the error code as an integer node, causing `num_station` and `fare` to default to 0 and transit to be skipped with no error logged.
 
-**`11024` is an API error code**, not valid route data. The Java code silently accepts it because:
-1. `getMixedRoute()` passes the response to `mapper.readTree("11024")` — Jackson parses this as an integer JsonNode (valid JSON)
-2. `path("num_station").asInt()` on an integer node returns 0 (no such field)
-3. `path("fare").asInt()` also returns 0
-4. The guard `num_station > 0 && fare > 0` evaluates to `false`
-5. Transit is silently skipped — no error logged
+### Fix applied
 
-**Conclusion**: The blocker is **API-side** — either:
-- The account lacks GetMixedRoute permissions (different service tier)
-- The GetMixedRoute service is currently disabled/deprecated
-- Error 11024 means a specific authorization or configuration failure
+Added `MaxRadius` and `MaxRoutes` to `getStringStringMap()` in `TripGenerator_WebAPI_refactor.java`, backed by config properties `api.maxRadius` (default 1000) and `api.maxRoutes` (default 9).
 
-This is **not** an AppDate issue, parameter issue, or parser bug. The code is correctly calling the API; the API is refusing the request. Cost model calibration (Cause B from initial diagnosis) remains a secondary concern but is moot until the API returns actual data.
+### Verification (2026-03-13)
 
-**Next step**: Contact the CSIS WebAPI administrator to clarify error code 11024 and verify account permissions for GetMixedRoute. The diagnostic probe script is at `scripts/staging/probe_mixedroute_api.py`.
+API probe confirmed valid responses after fix:
+- Hamamatsu→Shizuoka: `status=1, num_station=2, fare=3630, 22.0min` (浜松→静岡 via JR新幹線ひかり)
+- Shinjuku→Tokyo: `status=1, num_station=5, fare=200, 14.7min` (新宿→四ツ谷→御茶ノ水→神田→東京)
 
-### Secondary: Cost model (deferred)
+Full pref-22 staging rerun (mfactor=200, 17,398 persons, 43 cities):
 
-Even if the API returned valid transit data, the cost model makes CAR unrealistically cheap. This should be calibrated after API access is restored, but is not actionable until then.
+| Mode | Count | Share |
+|------|-------|-------|
+| CAR | 29,302 | 52.2% |
+| WALK | 11,814 | 21.0% |
+| BICYCLE | 8,582 | 15.3% |
+| TRAIN | 4,234 | 7.5% |
+| NOT_DEFINED | 2,227 | 4.0% |
+
+Mixed-route diagnostics: 32,048 API queries, 3,867 transit available, 2,109 MIX selected (won cost comparison). TRAIN now appearing at 7.5%.
+
+### Remaining: Cost model calibration
+
+CAR at 52.2% vs TRAIN at 7.5% — car ownership rate for pref 22 is 0.914 (highest in Japan), so high CAR share is expected, but cost model parameters (`fare.per.kilometer`, `fare.init`, `car.availability`) may still need tuning. Also, 28,146 of 32,048 queries returned `num_station==0` (no nearby station within MaxRadius), which is consistent with Shizuoka's rural/suburban geography.
 
 ---
 
@@ -107,18 +109,16 @@ Duplicates: 6,328 duplicate rows in 41 `_n` files (from repeated home-placeholde
 
 ## Summary
 
-| Issue | Severity | Category | Fix effort |
-|-------|----------|----------|------------|
-| 1. Missing transit | **BLOCKER** | Generator logic | Medium (AppDate config + cost calibration) |
-| 2. Student 0-persons | Non-blocker | Validator | Small (move MIN_ROW_COUNT check) |
-| 3. Person coverage gap | Non-blocker* | Pipeline integration | Medium (input/output chaining) |
-| 4. Trajectory monotonicity | Non-blocker | 80% cosmetic, 17% calibration | Deferred |
-| 5. File naming truncation | Non-blocker | Output format | Small (fix substring logic) |
+| Issue | Status | Category | Resolution |
+|-------|--------|----------|------------|
+| 1. Missing transit | **RESOLVED** | Request parameters | Added MaxRadius=1000, MaxRoutes=9 |
+| 2. Student 0-persons | **RESOLVED** | Validator | Moved MIN_ROW_COUNT to warning-only |
+| 3. Person coverage gap | **RESOLVED** | Pipeline integration | Input chaining + double-sampling fix |
+| 4. Trajectory monotonicity | Deferred | 80% cosmetic, 17% calibration | Not a blocker |
+| 5. File naming truncation | **RESOLVED** | Output format | Proper city code extraction |
 
-*Must be resolved before production.
+## Remaining work
 
-## Top 2 highest-impact fixes
-
-1. **Transit diagnosis + AppDate fix** (Issue 1): Make `AppDate` configurable via config.properties, add diagnostic logging when `publicTransit==false` after `getMixedRoute`. This unblocks transit mode and enables calibration of cost parameters.
-
-2. **Pipeline input chaining** (Issue 3): Make `TripGenerator_WebAPI_refactor` read activity input from `outputDir/activity/` so both stages use the same sampled population. This ensures end-to-end consistency and fixes the person coverage mismatch.
+- **Cost model calibration**: CAR 52.2% vs TRAIN 7.5% — tune `fare.*` and `car.availability` parameters
+- **Trajectory monotonicity**: 0.18% violations, mostly cosmetic — deferred
+- **Multi-prefecture staging**: Ready to run prefs 13, 26 now that transit is working

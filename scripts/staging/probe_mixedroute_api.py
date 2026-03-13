@@ -67,6 +67,8 @@ def query_mixed_route(session_id, od, app_date, app_time="0800"):
         "TransportCode": "1",
         "AppDate": app_date,
         "AppTime": app_time,
+        "MaxRadius": "1000",
+        "MaxRoutes": "9",
     }
     cookies = {"WebApiSessionID": session_id}
     resp = requests.post(GET_MIXED_ROUTE_URL, data=params, cookies=cookies, verify=False)
