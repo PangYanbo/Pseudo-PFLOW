@@ -1,171 +1,186 @@
-# Develop Pseudo PFlow
+# Pseudo-PFLOW
 
-DSPFlow is a data processing framework designed for converting complex datasets into meaningful insights through a series of processing steps.
+Pseudo-PFLOW generates synthetic population flow data for Japan — a full pipeline that simulates daily mobility of synthetic agents derived from census household data, producing per-person activity sequences, trip mode choices, trajectories, and aggregated spatial statistics.
 
 ## Prerequisites
 
-Before running the program, ensure Maven 3.6.3 is installed as versions after 3.8 might not be compatible with this project. Follow these steps to install Maven 3.6.3:
-
-1. Download Maven 3.6.3:
-
-    ```bash
-    wget https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
-    ```
-
-2. Extract the archive to `/opt`:
-
-    ```bash
-    sudo tar -xvzf apache-maven-3.6.3-bin.tar.gz -C /opt
-    ```
-
-3. Add Maven to your environment variables:
-
-    ```bash
-    export M2_HOME=/opt/apache-maven-3.6.3
-    export MAVEN_HOME=/opt/apache-maven-3.6.3
-    export PATH=$PATH:$M2_HOME/bin
-    ```
-
-4. Verify the Maven installation:
-
-    ```bash
-    mvn --version
-    ```
-
-### Configuring IntelliJ IDEA to Use Maven 3.6.3
-
-- Open `File > Settings` (or `IntelliJ IDEA > Preferences` on macOS).
-- Navigate to `Build, Execution, Deployment > Build Tools > Maven`.
-- Ensure the `Maven home directory` points to your installed Maven directory (`/opt/apache-maven-3.6.3`).
-- Click `OK` or `Apply` to apply the changes.
-
-### Troubleshooting Maven Environment
-
-If you encounter any issues with Maven configuration or dependencies are not being correctly downloaded, contact the project administrator for a backup of the `.m2/repository` directory, which contains all the necessary dependencies. To use the backup:
-
-1. Extract the backup `.m2/repository` directory.
-2. Copy it into your local `.m2` directory, usually located at `~/.m2/` on UNIX-like systems or `C:\Users\<YourUsername>\.m2\` on Windows.
-3. Merge the directory if it already exists to ensure no existing dependencies are lost.
+- **Java**: 11+ (tested with Eclipse Temurin 21)
+- **Maven**: 3.6.3 exactly (versions 3.8+ are incompatible)
+- **Python**: 3.8+ (for validation scripts only; no extra packages needed)
+- **Dataset**: Download from `S3://pseudo-pflow/processing`
 
 ### pflowlib sources
 
-The `jp.ac.ut.csis.pflow.*` library (previously distributed as `lib/pflowlib.jar`) is now compiled from source at `src/jp/ac/ut/csis/pflow/`. No manual JAR installation is needed — `mvn compile` picks up the sources automatically.
+The `jp.ac.ut.csis.pflow.*` routing, geometry, and mesh library (previously distributed as `lib/pflowlib.jar`) is compiled from source at `src/jp/ac/ut/csis/pflow/`. No manual JAR installation is needed — `mvn compile` picks up the sources automatically.
 
-## Ensure Correct Run Configuration
+## Build
 
-If you face issues with Run Configuration:
+```bash
+mvn clean package -DskipTests
+```
 
-- Check `Project Structure > Modules` and ensure the `Sources` and `Resources` tags are set correctly for your project directories.
-- Under `Paths`, confirm the `Output path` and `Test output path` are directed to the intended directories, usually `target/classes` and `target/test-classes`.
+Produces `target/DSPFlow-0.0.1-SNAPSHOT-jar-with-dependencies.jar`.
 
+## Configuration
 
+### Layered config system
 
-## 0. Data prosessing
-### Processing steps
-Household data -> Person data-> Activity data -> Trip data -> Trajectory dat -> Aggregated data
+Configuration is loaded with 4-layer precedence (later wins):
 
-### Dataset for processing
-Please download the dataset from S3://pseudo-pflow/processing<br>
-The dasetset was created from various statistical data.<br>
-Each processing step references files in the dataset.<br>
+| Priority | File | Committed |
+|----------|------|-----------|
+| 1 (base) | `src/main/resources/config.properties` | Yes |
+| 2 (pref) | `src/main/resources/config.pref.<N>.properties` | Yes |
+| 3 (local) | `src/main/resources/config.local.properties` | No (gitignored) |
+| 4 (external) | any path via `-Dconfig.file=` | No |
 
-## 1. Create person data from household data developed by Kajiwara
-Each person is assigned a role(workder, student, no-worker).
-* Entry point: pseudo.pre.PersonGenerator
-* Input
-  * pre_labor_rate.csv: Output of pseudo.pre.CensusKakou2
-  * pre_holiday_rate.csv: Data from Survey on time use and leisure activities
-  * pre_enrollment_rate.csv: Data from School Basic Survey
-  * househould data  developed by Kajiwara
-* Output
-  * Person data in CSV format
+Create a machine-local override:
 
-## 2. Create activity data for commuter
-* Entry point: pseudo.gen.Commuter
-* Input
-  * base_station.csv: Location of stations
-  * city_boundary.csv: City boundary data
-  * city_census_od.csv: Output of pseudo.pre.CensusKakou1
-  * city_hospital data:  Location of hospitals
-  * mesh_ecensus: Mesh-based economic census data
-  * city_tatemono: Tatamono data from Zenrin
-  * tky2008_trip_01-10_labor_male_prob.csv: Markov chain parameters calculated from PT data
-  * tky2008_trip_01-10_labor_female_prob.csv: Markov chain parameters calculated from PT data
-  * labor_params.csv: MNL parmaters calculate for location choice from PT data
-* Output
-  * Activity data in CSV format
+```bash
+# Linux
+cp src/main/resources/config.local.properties.example src/main/resources/config.local.properties
 
-## 3. Create activity data for student
-* Entry point: pseudo.gen.Student
-* Input
-  * base_station.csv: Location of stations
-  * city_boundary.csv: City boundary data
-  * city_hospital data:  Location of hospitals
-  * city_pre_school: Location of preschools
-  * city_school.csv: Location of schools
-  * mesh_ecensus: Mesh-based economic census data
-  * city_tatemono: Tatamono data from Zenrin
-  * tky2008_trip_11-11_student1_prob.csv: Markov chain parameters calculated from PT data
-  * tky2008_trip_12-13_student2_prob.csv: Markov chain parameters calculated from PT data
-  * nolabor_params.csv: MNL parmaters calculate for location choice from PT data
-  * primary_*.csv:　Map of households and school destinations
-  * secondary_*.csv:　Map of households and school destinations
-* Output
-  * Activity data in CSV format
+# Windows
+Copy-Item src\main\resources\config.local.properties.windows.example src\main\resources\config.local.properties
+```
 
-## 4. Create activity data for no-worker
-* Entry point: pseudo.gen.NonCommuter
-* Input
-  * base_station.csv: Location of stations
-  * city_boundary.csv: City boundary data
-  * city_hospital data:  Location of hospitals
-  * mesh_ecensus: Mesh-based economic census data
-  * city_tatemono: Tatamono data from Zenrin
-  * tky2008_trip_14-15_nolabor_male_prob.csv: Markov chain parameters calculated from PT data
-  * tky2008_trip_14-15_nolabor_female_prob.csv: Markov chain parameters calculated from PT data
-  * tky2008_trip_14-15_nolabor_male_senior_prob.csv: Markov chain parameters calculated from PT data
-  * tky2008_trip_14-15_nolabor_female_senior_prob.csv: Markov chain parameters calculated from PT data
-  * nolabor_params.csv: MNL parmaters calculate for location choice from PT data
-* Output
-  * Activity data in CSV format
+Edit with your local paths (use forward slashes on Windows):
 
-## 5. Create trip data from activity data
-* Entry point: pseudo.gen.TripGenerator
-* Input
-  * city_boundary.csv: City boundary data
-  * base_station.csv: Location of stations
-  * act_transport.csv: Traffic sharing rate from National PT survey
-  * activity: Result of No. 3, 4, 5
-* Output
-  * Trip data in CSV format
+```properties
+root=C:/Pseudo-PFLOW/data/
+inputDir=C:/Pseudo-PFLOW/data/processing/
+outputDir=C:/pflow_output/
+```
 
-## 6. Create trajectory data from trip data
-* Entry point: pseudo.gen.TrajectoryGenerator
-* Input
-  * drm_*.tsv: Road network data
-  * railnetwork.tsv: Railway network data
-  * act_transport.csv: Traffic sharing rate from National PT survey
-  * trip: Result of No. 5
-* Output
-  * Trajectory data in CSV format
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the full property reference.
 
-## 7. Create zip file of trajectory for each city
-* Entry point: pseudo.gen.TripJoinner
-* Input
-  * trajectory : Result of No. 6
-* Output
-  * ZIP-compressed trajectory data for each city
+### API credentials
 
-## 8. Create mesh population data from trajectory data
-* Entry point: pseudo.aggr.MeshVolumeCalculator2
-* Input
-  * trajectory : Result of No. 6
-* Output
-  * 500x500m grid population every 10 minutes
+The WebAPI pipeline requires CSIS routing API credentials. Set as environment variables (never in config files):
 
-## 9. Create link volume data from trajectory data
-* Entry point: pseudo.aggr.LinkVolumeCalculator
-* Input
-  * trajectory : Result of No. 6
-* Output
-  * The number of people passing by each link every hour
+```bash
+# Linux
+export PFLOW_API_USER=your_user
+export PFLOW_API_PASS=your_pass
+```
+
+```powershell
+# Windows (set as System environment variables via System Properties > Environment Variables)
+$env:PFLOW_API_USER = "your_user"
+$env:PFLOW_API_PASS = "your_pass"
+```
+
+The pipeline fails fast with a clear error if these are missing.
+
+## Pipeline
+
+### Mainline pipeline (WebAPI)
+
+The current production pipeline uses the CSIS WebAPI for transit and road routing:
+
+| Step | Entry point | Description |
+|------|-------------|-------------|
+| 1 | `pseudo.pre.PersonGenerator` | Household CSV → Person CSV |
+| 2 | `pseudo.gen.ActivityGenerator` | Census + Markov + MNL → Activity CSV (all labor types) |
+| 3 | `pseudo.gen.TripGenerator_WebAPI_refactor` | Activity → Trip + Trajectory CSV (WebAPI routing) |
+| 4 | `pseudo.gen.FileJoinner` | Trajectory CSV → ZIP per city |
+| 5 | `pseudo.aggr.MeshVolumeCalculator` | Trajectory → 500m mesh population per 10 min |
+| 6 | `pseudo.aggr.LinkVolumeCalculator` | Trajectory → Link volume per hour |
+
+Step 3 creates a WebAPI session per prefecture, routes each trip through the CSIS road/transit network, and produces both trip and trajectory data in a single pass. Features include:
+- Automatic session refresh (configurable interval, default 15 min)
+- Transit stop reachability precheck (reduces unnecessary API calls)
+- GetMixedRoute response cache
+- Fail-fast on API unavailability with clear error messages
+
+### Legacy pipeline (offline)
+
+The original offline pipeline is retained for environments without WebAPI access:
+
+| Step | Entry point | Description |
+|------|-------------|-------------|
+| 3a | `pseudo.gen.TripGenerator` | Activity → Trip CSV (local mode choice) |
+| 3b | `pseudo.gen.TrajectoryGenerator` | Trip CSV + DRM road network → Trajectory CSV |
+
+Steps 1-2 and 4-6 are shared with the mainline pipeline.
+
+### Running
+
+```bash
+# Single prefecture (mainline)
+mvn exec:java -Dexec.mainClass="pseudo.gen.ActivityGenerator" -Dexec.args="22"
+mvn exec:java -Dexec.mainClass="pseudo.gen.TripGenerator_WebAPI_refactor" -Dexec.args="22"
+
+# With sampling (mfactor=200 → 0.5% sample)
+mvn exec:java -Dexec.mainClass="pseudo.gen.ActivityGenerator" -Dexec.args="22 200"
+mvn exec:java -Dexec.mainClass="pseudo.gen.TripGenerator_WebAPI_refactor" -Dexec.args="22 200"
+```
+
+See [docs/RUN_GUIDE.md](docs/RUN_GUIDE.md) for step-by-step instructions and troubleshooting.
+
+## Output structure
+
+After a pipeline run for prefecture 22:
+
+```
+<outputDir>/
+  activity/22/         activity_XXXXX.csv  (one per city)
+  trip/22/             trip_XXXXX.csv
+  trajectory/22/       trajectory_XXXXX.csv
+  validation/22/       activity.json, trip.json, trajectory.json, summary.md
+  logs/                activity.log, trip.log
+  manifest.json        run metadata (prefecture, mfactor, file counts, timestamp)
+```
+
+## Validation
+
+The validation framework checks activity, trip, and trajectory outputs for correctness:
+
+```bash
+# Linux
+scripts/validate/run_validation.sh 22 /path/to/outputDir
+
+# Windows
+.\scripts\windows\run_validate.ps1 22 C:\pflow_staging\pref_22
+```
+
+Produces per-file JSON reports and an aggregate Markdown summary. See [docs/VALIDATION_GUIDE.md](docs/VALIDATION_GUIDE.md) for check rules, thresholds, and baseline interpretation.
+
+## Windows deployment
+
+PowerShell scripts are provided under `scripts/windows/` for operating the pipeline on Windows servers:
+
+| Script | Purpose |
+|--------|---------|
+| `run_pref.ps1` | Full pipeline for one prefecture (activity + trip + validation) |
+| `run_batch.ps1` | Multi-prefecture sequential batch |
+| `run_activity.ps1` | Activity generation only |
+| `run_trip_webapi.ps1` | WebAPI trip + trajectory only |
+| `run_validate.ps1` | Validation suite |
+| `check_status.ps1` | Monitor running/completed runs |
+
+See [docs/ENGINEERING_HANDOFF.md](docs/ENGINEERING_HANDOFF.md) for the complete Windows deployment guide.
+
+## Transport tuning
+
+A tuning framework for calibrating transport mode choice parameters against PT survey targets is available under `scripts/tuning/`. Uses Latin Hypercube Sampling over 7 model parameters, scored against prefecture-specific mode share targets.
+
+See [docs/TUNING_GUIDE.md](docs/TUNING_GUIDE.md) for details.
+
+## Project status
+
+- Both legacy and mainline (WebAPI) pipelines have been smoke-tested on Linux (pref 22)
+- API session management, fail-fast guards, and transit stop precheck are in place
+- Validation framework operational for activity, trip, and trajectory outputs
+- Windows deployment scripts and engineering handoff documentation prepared
+- Stage 1 transport tuning completed for pref 22 (best loss 214.39 vs baseline 320.77)
+
+## Documentation
+
+| Document | Contents |
+|----------|----------|
+| [RUN_GUIDE.md](docs/RUN_GUIDE.md) | Step-by-step pipeline execution |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Layered config system and property reference |
+| [VALIDATION_GUIDE.md](docs/VALIDATION_GUIDE.md) | Validator rules, thresholds, baselines |
+| [ENGINEERING_HANDOFF.md](docs/ENGINEERING_HANDOFF.md) | Windows server deployment guide |
+| [TUNING_GUIDE.md](docs/TUNING_GUIDE.md) | Transport mode calibration framework |

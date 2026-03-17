@@ -1,0 +1,59 @@
+# Transport tuning search space
+# Each parameter maps to a config.properties key read by TripGenerator_WebAPI_refactor.
+# Range: [min, max] inclusive. Default is the baseline value (config_000).
+# All parameters are continuous (floats); integer rounding applied where noted.
+
+parameters:
+  fare.per.hour:
+    range: [500, 2000]
+    default: 1000
+    description: "Time-based generalized cost component (yen/hour)"
+
+  fare.init:
+    range: [100, 500]
+    default: 200
+    description: "Initial flat fare for transit (yen)"
+
+  fare.per.kilometer:
+    range: [5, 30]
+    default: 10
+    description: "Distance-based fare component (yen/km)"
+
+  fatigue.walk:
+    range: [1.0, 3.0]
+    default: 1.5
+    description: "Walk disutility multiplier (higher = less walking)"
+
+  fatigue.bicycle:
+    range: [1.0, 2.0]
+    default: 1.2
+    description: "Bicycle disutility multiplier"
+
+  api.transit.transferPenalty:
+    range: [0, 300]
+    default: 0
+    round: true
+    description: "Penalty per transit transfer in generalized cost (yen-equivalent)"
+
+  min.transit.distance:
+    range: [500, 1500]
+    default: 1000
+    round: true
+    description: "Minimum OD distance (meters) to consider transit modes"
+
+# Stage configuration
+stage1:
+  num_candidates: 10        # 1 baseline (config_000) + 9 LHS
+  persons_per_city: 1000    # target persons per city
+
+stage2:
+  num_candidates: 4         # top N from stage 1 (including baseline if ranked)
+  persons_per_city: 2000    # 2x stage 1
+
+# Loss function weights (from TUNING_PLAN.md A1)
+loss_weights:
+  CAR: 3.0
+  TRAIN: 2.0
+  BUS: 2.0
+  BICYCLE: 1.0
+  WALK: 1.0

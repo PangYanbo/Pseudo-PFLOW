@@ -68,12 +68,14 @@ public class TripGenerator {
 		private List<Person> listAgents;
 		private int error;
 		private int total;
+		private int tripCounter;
 		private final Dijkstra routing = new Dijkstra();
 
 		public TripTask(int id, List<Person> listAgents){
 			this.id = id;
 			this.listAgents = listAgents;
 			this.total = error = 0;
+			this.tripCounter = 0;
 		}	
 		
 		private EPurpose convertHomeMode(ELabor labor) {
@@ -112,8 +114,12 @@ public class TripGenerator {
 
 			EPTCity type = city.getPTType();
 			ETransport primaryMode = null;
+			tripCounter = 0;
 			if (activities.size() <= 1) {
-				person.addTrip(new Trip(ETransport.NOT_DEFINED, EPurpose.HOME, 0, pre.getLocation(), pre.getLocation()));
+				Trip t0 = new Trip(ETransport.NOT_DEFINED, EPurpose.HOME, 0, pre.getLocation(), pre.getLocation());
+				t0.setTripId(++tripCounter);
+				t0.setSubtripId(0);
+				person.addTrip(t0);
 			}else {
 				for (int i = 1; i < activities.size(); i++) {
 					Activity next = activities.get(i);
@@ -153,11 +159,15 @@ public class TripGenerator {
 						}
 						
 						// create trip or sub trips
+						int currentTripId = ++tripCounter;
 						if (nextMode != ETransport.TRAIN) {
 							// single mode
 							long travelTime = (long)(distance/Speed.get(nextMode));
 							long depTime = next.getStartTime() - travelTime;
-							person.addTrip(new Trip(nextMode, purpose, depTime, oll, dll));
+							Trip trip = new Trip(nextMode, purpose, depTime, oll, dll);
+							trip.setTripId(currentTripId);
+							trip.setSubtripId(0);
+							person.addTrip(trip);
 						}else {
 							long travelTime = 0;
 							long time1 = 0;
@@ -191,12 +201,20 @@ public class TripGenerator {
 								egrMode = modeAcs.getCode(tindex);
 								travelTime += (long)(distance / Speed.get(egrMode));
 							}
-							// create sub trips 
+							// create sub trips — repMode = TRAIN (highest priority segment)
 							long depTime = next.getStartTime()-travelTime;
+							ETransport repMode = Trip.computeRepMode(
+								Trip.computeRepMode(accMode, nextMode), egrMode);
 
-							person.addTrip(new Trip(accMode, purpose, depTime, oll, station1));
-							person.addTrip(new Trip(nextMode, purpose, depTime+time1, station1, station2));
-							person.addTrip(new Trip(egrMode, purpose, depTime+time2, station2, dll));
+							Trip t1 = new Trip(accMode, purpose, depTime, oll, station1);
+							t1.setTripId(currentTripId); t1.setSubtripId(0); t1.setRepMode(repMode);
+							Trip t2 = new Trip(nextMode, purpose, depTime+time1, station1, station2);
+							t2.setTripId(currentTripId); t2.setSubtripId(1); t2.setRepMode(repMode);
+							Trip t3 = new Trip(egrMode, purpose, depTime+time2, station2, dll);
+							t3.setTripId(currentTripId); t3.setSubtripId(2); t3.setRepMode(repMode);
+							person.addTrip(t1);
+							person.addTrip(t2);
+							person.addTrip(t3);
 						}
 					}
 					pre = next;

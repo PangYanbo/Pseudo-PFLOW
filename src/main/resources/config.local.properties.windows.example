@@ -1,0 +1,27 @@
+# Windows machine-specific config overrides
+# Copy to: src\main\resources\config.local.properties
+# This file is gitignored — never commit config.local.properties.
+#
+# NOTE: Use forward slashes (/) in paths, not backslashes (\).
+# Java Properties requires forward slashes even on Windows.
+
+# --- Input data paths ---
+# All input data (processing/, agent/, markov/, etc.) is under C:/Pseudo-PFLOW/data/
+root=C:/Pseudo-PFLOW/data/
+inputDir=C:/Pseudo-PFLOW/data/processing/
+
+# Bus stop data (National Land Numerical Information GML zips, P11-22_XX_GML.zip)
+# busStopDir=C:/Pseudo-PFLOW/data/processing/bus_stop
+
+# --- Output paths ---
+# Pipeline writes activity/, trip/, trajectory/ under outputDir
+outputDir=C:/pflow_output/
+
+# --- Session settings ---
+# Session refresh interval (minutes). Default: 15.
+# The API session expires after ~19 minutes. Keep this below 19.
+# api.sessionRefreshMinutes=15
+
+# Transit stop precheck (reduces unnecessary API calls).
+# Set to false to disable precheck and always call the API.
+# api.precheckEnabled=true

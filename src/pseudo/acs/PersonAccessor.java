@@ -192,14 +192,17 @@ public class PersonAccessor{
 					ILonLat o = trip.getOrigin();
 					ILonLat d = trip.getDestination();
 					bw.write(
-						String.format("%d,%d,%f,%f,%f,%f,%d,%d,%d", 
+						String.format("%d,%d,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d",
 								p.getId(),
 								trip.getDepTime(),
 								o.getLon(), o.getLat(),
 								d.getLon(), d.getLat(),
 								trip.getTransport().getId(),
 								trip.getPurpose().getId(),
-								p.getLabor().getId()
+								p.getLabor().getId(),
+								trip.getTripId(),
+								trip.getSubtripId(),
+								trip.getRepMode().getId()
 							));
 					bw.newLine();	
 				}
@@ -240,6 +243,11 @@ public class PersonAccessor{
             	}
 
             	Trip trip = new Trip(mode, purpose, depTime, new LonLat(lon1,lat1), new LonLat(lon2,lat2));
+            	if (items.length >= 12) {
+            		trip.setTripId(Integer.valueOf(items[9]));
+            		trip.setSubtripId(Integer.valueOf(items[10]));
+            		trip.setRepMode(ETransport.getType(Integer.valueOf(items[11])));
+            	}
             	person.addTrip(trip);
 
             	preId = nextId;

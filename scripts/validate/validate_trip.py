@@ -11,6 +11,9 @@ Trip CSV columns (no header):
   6: transport_id (int: 0=NOT_DEFINED,1=WALK,2=BICYCLE,3=CAR,4=TRAIN,5=BUS,6=MIX,7=COMMUNITY)
   7: purpose_id (int)
   8: labor_id (int)
+  9: trip_id (int) [optional, 12-column format]
+ 10: subtrip_id (int) [optional, 12-column format]
+ 11: rep_mode (int) [optional, 12-column format]
 """
 
 import csv
@@ -103,6 +106,10 @@ def validate_file(filepath, activity_person_ids=None):
     nd_placeholder = 0   # zero-distance: stay-at-home / return-to-same-location
     nd_unexpected = 0     # nonzero-distance: real movement with no mode
 
+    # Trip-level mode share via rep_mode (12-column format only)
+    has_trip_ids = False
+    trip_rep_modes = {}  # (person_id, trip_id) -> rep_mode
+
     for row in rows:
         try:
             pid = int(row[0])
@@ -119,6 +126,16 @@ def validate_file(filepath, activity_person_ids=None):
         persons[pid].append({"dep_time": dep_time, "transport": transport, "dist_km": dist})
         transport_counter[transport] += 1
         distances_km.append(dist)
+
+        # Parse optional 12-column fields
+        if len(row) >= 12:
+            try:
+                trip_id = int(row[9])
+                rep_mode = int(row[11])
+                has_trip_ids = True
+                trip_rep_modes[(pid, trip_id)] = rep_mode
+            except (ValueError, IndexError):
+                pass
 
         if transport == 0:
             if dist < ZERO_DISTANCE_THRESHOLD_KM:
@@ -179,6 +196,19 @@ def validate_file(filepath, activity_person_ids=None):
         sorted_d = sorted(distances_km)
         result["stats"]["distance_km_median"] = round(sorted_d[len(sorted_d) // 2], 2)
         result["stats"]["distance_km_p95"] = round(sorted_d[int(len(sorted_d) * 0.95)], 2)
+
+    # ── Trip-level mode share (from rep_mode, 12-column format only) ─────
+    if has_trip_ids and trip_rep_modes:
+        trip_mode_counter = Counter(trip_rep_modes.values())
+        num_trips = len(trip_rep_modes)
+        trip_mode_share = {}
+        for tid in sorted(trip_mode_counter.keys()):
+            name = TRANSPORT_NAMES.get(tid, str(tid))
+            count = trip_mode_counter[tid]
+            pct = count / num_trips * 100
+            trip_mode_share[name] = {"count": count, "pct": round(pct, 1)}
+        result["stats"]["trip_level_mode_share"] = trip_mode_share
+        result["stats"]["num_trips"] = num_trips
 
     # ── Departure time ordering ──────────────────────────────────────────
     time_violations = 0

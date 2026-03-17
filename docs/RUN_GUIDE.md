@@ -2,40 +2,49 @@
 
 How to run the Pseudo-PFLOW mainline pipeline end-to-end and validate outputs.
 
+For Windows-specific deployment instructions, see [ENGINEERING_HANDOFF.md](ENGINEERING_HANDOFF.md).
+
 ## Prerequisites
 
 - **Java**: 11+ (tested with Temurin 21)
 - **Maven**: 3.6.3 exactly (3.8+ incompatible)
-- **Python**: 3.8+ (for validation scripts)
-- **Dataset**: Download from `S3://pseudo-pflow/processing` into a local directory
-- **WebAPI credentials**: Set `PFLOW_API_USER` and `PFLOW_API_PASS` environment variables (required for step 3 WebAPI variant)
+- **Python**: 3.8+ (for validation scripts; no extra packages needed)
+- **Dataset**: Download from `S3://pseudo-pflow/processing`
+- **WebAPI credentials**: Set `PFLOW_API_USER` and `PFLOW_API_PASS` as environment variables
+
+### Credentials setup
+
+```bash
+# Linux
+export PFLOW_API_USER=your_user
+export PFLOW_API_PASS=your_pass
+```
+
+On Windows, set `PFLOW_API_USER` and `PFLOW_API_PASS` as **System environment variables** via System Properties > Environment Variables. See [ENGINEERING_HANDOFF.md](ENGINEERING_HANDOFF.md) for details.
 
 ## Configuration
 
-Edit `src/main/resources/config.properties`:
+Create a machine-local config override (gitignored):
 
-```properties
-root=/path/to/PseudoPFLOW/
-inputDir=/path/to/PseudoPFLOW/processing/
-outputDir=/path/to/output/
+```bash
+# Linux
+cp src/main/resources/config.local.properties.example src/main/resources/config.local.properties
+
+# Windows
+Copy-Item src\main\resources\config.local.properties.windows.example src\main\resources\config.local.properties
 ```
 
-For machine-specific overrides without modifying the tracked file, create `src/main/resources/config.local.properties` (gitignored):
+Edit with your local paths:
 
 ```properties
-root=/my/local/path/
+root=/path/to/PseudoPFLOW/data/
+inputDir=/path/to/PseudoPFLOW/data/processing/
 outputDir=/tmp/pflow_output/
 ```
 
-See `src/main/resources/config.local.properties.example` for a template.
+Use forward slashes on Windows (e.g., `C:/Pseudo-PFLOW/data/`).
 
-### Prefecture-specific overrides
-
-Create `src/main/resources/config.pref.<N>.properties` to override parameters for a single prefecture (e.g., `config.pref.22.properties`).
-
-### Config precedence
-
-`config.properties` < `config.pref.<N>.properties` < `config.local.properties` < `-Dconfig.file=<path>`
+See [CONFIGURATION.md](CONFIGURATION.md) for the full 4-layer config system and property reference.
 
 ## Build
 
@@ -48,6 +57,7 @@ This produces `target/DSPFlow-0.0.1-SNAPSHOT-jar-with-dependencies.jar`.
 For all `mvn exec:java` commands below, set `JAVA_HOME` if needed:
 
 ```bash
+# Linux
 export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
 ```
 
@@ -145,7 +155,13 @@ After a full run for prefecture 22:
 Run the validation suite after any pipeline step completes:
 
 ```bash
+# Linux
 scripts/validate/run_validation.sh 22 /path/to/outputDir
+```
+
+```powershell
+# Windows
+.\scripts\windows\run_validate.ps1 22 C:\pflow_staging\pref_22
 ```
 
 This validates activity, trip, and trajectory outputs and produces a Markdown summary at `<outputDir>/validation/22/summary.md`.

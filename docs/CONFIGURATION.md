@@ -33,10 +33,14 @@ max.destination.search.distance=30000
 Gitignored. Use this for paths and credentials that differ per machine. Copy from the example:
 
 ```bash
+# Linux
 cp src/main/resources/config.local.properties.example src/main/resources/config.local.properties
+
+# Windows
+Copy-Item src\main\resources\config.local.properties.windows.example src\main\resources\config.local.properties
 ```
 
-Then edit:
+Then edit with your local paths (use forward slashes on Windows):
 
 ```properties
 root=/mnt/data/PseudoPFLOW/
@@ -100,19 +104,26 @@ api.appDate=20240401
 api.maxRadius=1000
 api.maxRoutes=9
 api.transportCode=3
+api.transit.selection=generalized_cost
+api.transit.transferPenalty=0
 ```
 
 - `api.appDate`: timetable date for transit routing (YYYYMMDD)
 - `api.maxRadius`: station search radius in meters (required by API; default 1000)
-- `api.maxRoutes`: max route alternatives returned (required by API; default 9)
-- `api.transportCode`: `3` = bus-oriented routing (default), `1` = train-oriented routing. The API returns routes matching the requested transport type; bus routes include walk+bus segments, train routes include walk+rail segments. Fails fast if set to any other value.
+- `api.maxRoutes`: max route alternatives returned (required by API; default 9). All candidates are evaluated; the best is selected by `api.transit.selection`.
+- `api.transportCode`: `3` = bus-oriented routing (default), `1` = train-oriented routing. The API returns up to `maxRoutes` candidates matching the requested transport type. Fails fast if set to any other value.
+- `api.transit.selection`: how to select the best transit candidate from multiple API alternatives. Options: `generalized_cost` (default, `fare + time/60 * fare.per.hour + transfers * transferPenalty`), `min_time`, `min_fare`, `min_transfers`.
+- `api.transit.transferPenalty`: penalty per transfer added to generalized cost (default 0, backward-compatible). Set to e.g. 100 to penalize routes with many transfers.
 
 Credentials are **not** in config files. Set as environment variables:
 
 ```bash
+# Linux
 export PFLOW_API_USER=your_user
 export PFLOW_API_PASS=your_pass
 ```
+
+On Windows, set `PFLOW_API_USER` and `PFLOW_API_PASS` as **System environment variables** (System Properties > Advanced > Environment Variables > System variables). Restart PowerShell after setting.
 
 The generator fails fast with `IllegalStateException` if these are missing or blank.
 

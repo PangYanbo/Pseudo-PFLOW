@@ -52,6 +52,9 @@ config.local.properties
 # Local archive (decommissioned artifacts kept for reference)
 archive_local/
 
+# Tuning and staging output
+output/
+
 # Intermediate or large data files (optional)
 *.csv
 *.json

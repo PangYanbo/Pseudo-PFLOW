@@ -14,6 +14,7 @@ import jp.ac.ut.csis.pflow.routing4.res.Link;
 import jp.ac.ut.csis.pflow.routing4.res.Network;
 import jp.ac.ut.csis.pflow.routing4.res.Node;
 import jp.ac.ut.csis.pflow.routing4.res.Route;
+import network.BusStopLoader;
 import network.DrmLoader;
 import network.RailLoader;
 import org.apache.http.HttpResponse;
@@ -44,11 +45,13 @@ import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TripGenerator_WebAPI_refactor {
 
@@ -58,7 +61,9 @@ public class TripGenerator_WebAPI_refactor {
 	private final SSLContext sslContext;
 	private final PoolingHttpClientConnectionManager connManager;
 	private final CloseableHttpClient httpClient;
-	private final String sessionId;
+	private volatile String sessionId;
+	private volatile long sessionCreatedAt;
+	private final long sessionRefreshIntervalMs;
 
 	private final double MIN_TRANSIT_DISTANCE;
 	private final double FARE_PER_KILOMETER;
@@ -71,6 +76,8 @@ public class TripGenerator_WebAPI_refactor {
 	private final String maxRadius;
 	private final String maxRoutes;
 	private final String transportCode;
+	private final String transitSelection;
+	private final double transferPenalty;
 
 	// Mixed-route diagnostic counters (shared across TripTask threads)
 	private final AtomicInteger mixedQueryCount = new AtomicInteger();
@@ -79,8 +86,36 @@ public class TripGenerator_WebAPI_refactor {
 	private final AtomicInteger mixedTransitAvailable = new AtomicInteger();
 	private final AtomicInteger mixedSelectedCount = new AtomicInteger();
 	private final AtomicInteger mixedBelowDistThreshold = new AtomicInteger();
+	private final AtomicInteger mixedCandidateTotal = new AtomicInteger();
+	private final AtomicInteger mixedCandidateBusOnly = new AtomicInteger();
+	private final AtomicInteger mixedCandidateTrainOnly = new AtomicInteger();
+	private final AtomicInteger mixedCandidateMixed = new AtomicInteger();
+	private final AtomicInteger selectedBusOnly = new AtomicInteger();
+	private final AtomicInteger selectedTrainOnly = new AtomicInteger();
+	private final AtomicInteger selectedMixed = new AtomicInteger();
+
+	// Feature A: Transit stop reachability precheck
+	private final Network transitStops;
+	private final double precheckRadius;
+	private final AtomicInteger precheckSkipCount = new AtomicInteger();
+	private final AtomicInteger precheckPassCount = new AtomicInteger();
+
+	// Feature B: GetMixedRoute response cache
+	private final ConcurrentHashMap<String, List<JsonNode>> routeCache = new ConcurrentHashMap<>();
+	private final AtomicInteger cacheHitCount = new AtomicInteger();
+	private final AtomicInteger cacheMissCount = new AtomicInteger();
+	private final AtomicLong cacheSavedMs = new AtomicLong();
+
+	// Session lifecycle diagnostics
+	private final AtomicInteger sessionRefreshCount = new AtomicInteger();
+	private final AtomicInteger sessionRetrySuccessCount = new AtomicInteger();
+	private final AtomicInteger sessionRetryFailCount = new AtomicInteger();
 
 	public TripGenerator_WebAPI_refactor(Country japan, Network drm, Network railway) throws Exception {
+		this(japan, drm, railway, null);
+	}
+
+	public TripGenerator_WebAPI_refactor(Country japan, Network drm, Network railway, Network transitStops) throws Exception {
 		super();
         this.drm = drm;
 		this.railway = railway;
@@ -98,10 +133,20 @@ public class TripGenerator_WebAPI_refactor {
 		if (!"1".equals(transportCode) && !"3".equals(transportCode)) {
 			throw new IllegalArgumentException("api.transportCode must be 1 (train) or 3 (bus), got: " + transportCode);
 		}
+		this.transitSelection = prop.getProperty("api.transit.selection", "generalized_cost");
+		if (!transitSelection.matches("generalized_cost|min_time|min_fare|min_transfers")) {
+			throw new IllegalArgumentException("api.transit.selection must be one of: generalized_cost, min_time, min_fare, min_transfers; got: " + transitSelection);
+		}
+		this.transferPenalty = Double.parseDouble(prop.getProperty("api.transit.transferPenalty", "0"));
+		this.transitStops = transitStops;
+		this.precheckRadius = Double.parseDouble(maxRadius);
+		this.sessionRefreshIntervalMs = (long) (Double.parseDouble(
+				prop.getProperty("api.sessionRefreshMinutes", "15")) * 60 * 1000);
 		this.sslContext = createSSLContext();
 		this.connManager = createConnManager();
 		this.httpClient = createHttpClient();
 		this.sessionId = createSession();
+		this.sessionCreatedAt = System.currentTimeMillis();
 	}
 
 	private SSLContext createSSLContext() throws Exception {
@@ -186,7 +231,48 @@ public class TripGenerator_WebAPI_refactor {
 			throw new RuntimeException("Failed to create WebAPI session: HTTP " + sessionResponse.getStatusLine().getStatusCode());
 		}
 	}
-	
+
+	/**
+	 * Proactive session refresh: called before an API request when the session
+	 * age exceeds sessionRefreshIntervalMs. Only one thread performs the refresh;
+	 * others see the updated volatile sessionId.
+	 *
+	 * @return the current (possibly refreshed) session ID
+	 */
+	private String getValidSession() {
+		if (System.currentTimeMillis() - sessionCreatedAt > sessionRefreshIntervalMs) {
+			return refreshSession("proactive (age > " + sessionRefreshIntervalMs / 60000 + " min)");
+		}
+		return sessionId;
+	}
+
+	/**
+	 * Force a session refresh. Synchronized so only one thread creates a new
+	 * session; others wait and return the fresh ID.
+	 *
+	 * @param reason human-readable reason for the refresh (logged)
+	 * @return new session ID
+	 * @throws RuntimeException if the refresh fails (fail-fast, no silent fallback)
+	 */
+	private synchronized String refreshSession(String reason) {
+		// Double-check: another thread may have already refreshed while we waited
+		long age = System.currentTimeMillis() - sessionCreatedAt;
+		if (age < sessionRefreshIntervalMs / 2) {
+			return sessionId; // recently refreshed by another thread
+		}
+		System.out.println("[session] Refreshing session (" + reason + "), age=" + age / 1000 + "s");
+		try {
+			String newId = createSession();
+			this.sessionId = newId;
+			this.sessionCreatedAt = System.currentTimeMillis();
+			sessionRefreshCount.incrementAndGet();
+			System.out.println("[session] Refresh successful (total refreshes: " + sessionRefreshCount.get() + ")");
+			return newId;
+		} catch (Exception e) {
+			throw new RuntimeException("[session] Refresh failed (" + reason + "): " + e.getMessage(), e);
+		}
+	}
+
 	protected double getRandom() {
 		return ThreadLocalRandom.current().nextDouble();
 	}
@@ -196,6 +282,7 @@ public class TripGenerator_WebAPI_refactor {
 		private final List<Person> listAgents;
 		private int error;
 		private int total;
+		private int tripCounter;
 		LinkCost linkCost = new LinkCost();
 		Dijkstra routing = new Dijkstra(linkCost);
 
@@ -203,6 +290,7 @@ public class TripGenerator_WebAPI_refactor {
 			this.id = id;
 			this.listAgents = listAgents;
 			this.total = error = 0;
+			this.tripCounter = 0;
 		}	
 		
 		private EPurpose convertHomeMode(ELabor labor) {
@@ -278,20 +366,65 @@ public class TripGenerator_WebAPI_refactor {
 			}
 
 			if(distance>MIN_TRANSIT_DISTANCE){
-				mixedQueryCount.incrementAndGet();
-				mixedResultsHolder[0] = getMixedRoute(httpClient, sessionId, mixedparams);
-				int numStation = mixedResultsHolder[0].path("num_station").asInt();
-				int fare = mixedResultsHolder[0].path("fare").asInt();
-				boolean publicTransit = numStation > 0 && fare > 0;
-				if (!publicTransit) {
-					if (numStation == 0) mixedNoStationCount.incrementAndGet();
-					if (fare == 0) mixedNoFareCount.incrementAndGet();
-				} else {
-					mixedTransitAvailable.incrementAndGet();
-					double mixedfare = mixedResultsHolder[0].get("fare").asDouble();
-					double mixedtime = mixedResultsHolder[0].get("total_time").asDouble(); // Travel time from WebAPI is in minute
-					double mixedcost = mixedfare + mixedtime / 60 * FARE_PER_HOUR;
-					choices.put(ETransport.MIX, mixedcost);
+				// Feature A: Transit stop reachability precheck
+				boolean transitReachable = true;
+				if (transitStops != null) {
+					double oLon = Double.parseDouble(mixedparams.get("StartLongitude"));
+					double oLat = Double.parseDouble(mixedparams.get("StartLatitude"));
+					double dLon = Double.parseDouble(mixedparams.get("GoalLongitude"));
+					double dLat = Double.parseDouble(mixedparams.get("GoalLatitude"));
+					boolean originHasStop = !transitStops.queryNode(oLon, oLat, precheckRadius).isEmpty();
+					boolean destHasStop = !transitStops.queryNode(dLon, dLat, precheckRadius).isEmpty();
+					if (!originHasStop || !destHasStop) {
+						transitReachable = false;
+						precheckSkipCount.incrementAndGet();
+					} else {
+						precheckPassCount.incrementAndGet();
+					}
+				}
+
+				if (transitReachable) {
+					mixedQueryCount.incrementAndGet();
+
+					// Feature B: Response cache
+					String cacheKey = buildCacheKey(mixedparams);
+					List<JsonNode> candidates = routeCache.get(cacheKey);
+					if (candidates != null) {
+						cacheHitCount.incrementAndGet();
+					} else {
+						cacheMissCount.incrementAndGet();
+						long t0 = System.currentTimeMillis();
+						// Proactive refresh: get a session that hasn't expired yet
+						String sid = getValidSession();
+						candidates = getMixedRoutes(httpClient, sid, mixedparams);
+
+						// null = non-200 HTTP → session likely expired → refresh + retry once
+						if (candidates == null) {
+							String freshSid = refreshSession("HTTP non-200 on getMixedRoutes");
+							candidates = getMixedRoutes(httpClient, freshSid, mixedparams);
+							if (candidates != null) {
+								sessionRetrySuccessCount.incrementAndGet();
+							} else {
+								sessionRetryFailCount.incrementAndGet();
+								throw new RuntimeException(
+									"[API FAILURE] GetMixedRoute returned non-200 even after session refresh. "
+									+ "API is unavailable or session is permanently invalid. Stopping run.");
+							}
+						}
+						cacheSavedMs.addAndGet(System.currentTimeMillis() - t0);
+						routeCache.put(cacheKey, candidates);
+					}
+
+					mixedResultsHolder[0] = selectBestTransitCandidate(candidates);
+					if (mixedResultsHolder[0] == null) {
+						mixedNoStationCount.incrementAndGet();
+					} else {
+						mixedTransitAvailable.incrementAndGet();
+						double mixedfare = mixedResultsHolder[0].get("fare").asDouble();
+						double mixedtime = mixedResultsHolder[0].get("total_time").asDouble();
+						double mixedcost = mixedfare + mixedtime / 60 * FARE_PER_HOUR;
+						choices.put(ETransport.MIX, mixedcost);
+					}
 				}
 			} else {
 				mixedBelowDistThreshold.incrementAndGet();
@@ -308,6 +441,67 @@ public class TripGenerator_WebAPI_refactor {
 			}
 
 			return nextMode;
+		}
+
+		private JsonNode selectBestTransitCandidate(List<JsonNode> candidates) {
+			JsonNode best = null;
+			double bestScore = Double.MAX_VALUE;
+
+			for (JsonNode candidate : candidates) {
+				int numStation = candidate.path("num_station").asInt();
+				int fare = candidate.path("fare").asInt();
+				if (numStation <= 0 || fare <= 0) continue;
+
+				// Classify candidate
+				mixedCandidateTotal.incrementAndGet();
+				boolean hasBus = false, hasTrain = false;
+				for (JsonNode feature : candidate.path("features")) {
+					int t = feature.path("properties").path("transportation").asInt();
+					if (t == 3) hasBus = true;
+					if (t == 2) hasTrain = true;
+				}
+				if (hasBus && hasTrain) mixedCandidateMixed.incrementAndGet();
+				else if (hasBus) mixedCandidateBusOnly.incrementAndGet();
+				else if (hasTrain) mixedCandidateTrainOnly.incrementAndGet();
+
+				double score;
+				double time = candidate.path("total_time").asDouble();
+				int transfers = Math.max(0, numStation - 2); // stations minus origin+destination
+				switch (transitSelection) {
+					case "min_time":
+						score = time;
+						break;
+					case "min_fare":
+						score = fare;
+						break;
+					case "min_transfers":
+						score = transfers + time * 0.001; // tiebreak by time
+						break;
+					default: // generalized_cost
+						score = fare + time / 60.0 * FARE_PER_HOUR + transfers * transferPenalty;
+						break;
+				}
+
+				if (score < bestScore) {
+					bestScore = score;
+					best = candidate;
+				}
+			}
+
+			// Classify selected candidate
+			if (best != null) {
+				boolean hasBus = false, hasTrain = false;
+				for (JsonNode feature : best.path("features")) {
+					int t = feature.path("properties").path("transportation").asInt();
+					if (t == 3) hasBus = true;
+					if (t == 2) hasTrain = true;
+				}
+				if (hasBus && hasTrain) selectedMixed.incrementAndGet();
+				else if (hasBus) selectedBusOnly.incrementAndGet();
+				else if (hasTrain) selectedTrainOnly.incrementAndGet();
+			}
+
+			return best;
 		}
 
 		// Methods to refactor and modularize the code
@@ -336,7 +530,7 @@ public class TripGenerator_WebAPI_refactor {
 			}
 		}
 
-		private void handleMixedTransport(ETransport nextMode, EPurpose purpose, JsonNode[] mixedResultsHolder, List<SPoint> subpoints, List<SPoint> points, Person person, Activity next, Route route, long startTime, long endTime, LonLat oll, LonLat dll) {
+		private List<Trip> handleMixedTransport(ETransport nextMode, EPurpose purpose, JsonNode[] mixedResultsHolder, List<SPoint> subpoints, List<SPoint> points, Activity next, Route route, long startTime, long endTime, LonLat oll, LonLat dll) {
 			long mixedTime = mixedResultsHolder[0].path("total_time").asLong() * 60;
 			endTime += mixedTime;
 			long travelTime = mixedTime;
@@ -348,11 +542,12 @@ public class TripGenerator_WebAPI_refactor {
 			List<JsonNode> currentSubtrip = new ArrayList<>();
 			int lastMode = determineInitialTransportMode(mixedResultsHolder);
 
-			processMixedTransportFeatures(mixedResultsHolder, currentSubtrip, lastMode, publicTransit, depTime, person, purpose);
+			List<Trip> mixedTrips = processMixedTransportFeatures(mixedResultsHolder, currentSubtrip, lastMode, publicTransit, depTime, purpose);
 			if (!nodes.isEmpty()) {
 				addTimeStampedSubpoints(nodes, nodeModes, startTime, endTime, purpose, subpoints);
 			}
 			points.addAll(subpoints);
+			return mixedTrips;
 		}
 
 //		private List<Node> extractNodesFromMixedResults(JsonNode[] mixedResultsHolder) {
@@ -447,7 +642,8 @@ public class TripGenerator_WebAPI_refactor {
 			return mixedResultsHolder[0].path("features").get(0).path("properties").path("transportation").asInt();
 		}
 
-		private void processMixedTransportFeatures(JsonNode[] mixedResultsHolder, List<JsonNode> currentSubtrip, int lastMode, boolean publicTransit, long depTime, Person person, EPurpose purpose) {
+		private List<Trip> processMixedTransportFeatures(JsonNode[] mixedResultsHolder, List<JsonNode> currentSubtrip, int lastMode, boolean publicTransit, long depTime, EPurpose purpose) {
+			List<Trip> trips = new ArrayList<>();
 			JsonNode routeData = mixedResultsHolder[0].path("features");
 			JsonNode prevNode = null;
 			long currentTime = depTime;
@@ -457,7 +653,8 @@ public class TripGenerator_WebAPI_refactor {
 				if (currentMode != lastMode) {
 					if (currentSubtrip.size() > 1) {
 						currentTime += estimateSegmentTime(currentSubtrip, lastMode);
-						addTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, person, purpose);
+						Trip t = buildTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, purpose);
+						if (t != null) trips.add(t);
 					}
 					currentSubtrip = new ArrayList<>();
 					currentSubtrip.add(prevNode);
@@ -466,11 +663,13 @@ public class TripGenerator_WebAPI_refactor {
 				currentSubtrip.add(feature);
 				prevNode = feature;
 			}
-			// emit final segment (was missing — last segment after final mode change was dropped)
+			// emit final segment
 			if (currentSubtrip.size() > 1) {
 				currentTime += estimateSegmentTime(currentSubtrip, lastMode);
-				addTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, person, purpose);
+				Trip t = buildTripForSubtrip(currentSubtrip, lastMode, publicTransit, currentTime, purpose);
+				if (t != null) trips.add(t);
 			}
+			return trips;
 		}
 
 		private long estimateSegmentTime(List<JsonNode> subtrip, int mode) {
@@ -485,10 +684,9 @@ public class TripGenerator_WebAPI_refactor {
 			return Math.max(1L, (long)(distance / speed));
 		}
 
-		private void addTripForSubtrip(List<JsonNode> currentSubtrip, int lastMode, boolean publicTransit, long depTime, Person person, EPurpose purpose) {
+		private Trip buildTripForSubtrip(List<JsonNode> currentSubtrip, int lastMode, boolean publicTransit, long depTime, EPurpose purpose) {
 			JsonNode ollCoords = currentSubtrip.get(0).path("geometry").path("coordinates");
 			JsonNode dllCoords = currentSubtrip.get(currentSubtrip.size() - 1).path("geometry").path("coordinates");
-//			ETransport mode = getTransport(currentSubtrip.get(1).path("properties").path("transportation").asInt());
 
 			// 2025-02-20 feature railway interpolation with 1.2 algorithm
 			int firstMode = currentSubtrip.get(0).path("properties").path("transportation").asInt();
@@ -510,10 +708,10 @@ public class TripGenerator_WebAPI_refactor {
 			if (ollCoords.isArray() && dllCoords.isArray()) {
 				LonLat moll = new LonLat(ollCoords.get(0).asDouble(), ollCoords.get(1).asDouble());
 				LonLat mdll = new LonLat(dllCoords.get(0).asDouble(), dllCoords.get(1).asDouble());
-				// depTime += (long) (DistanceUtils.distance(moll, mdll) / getTravelSpeed(mode.getId()));
-				person.addTrip(new Trip(mode, purpose, depTime, moll, mdll));
+				return new Trip(mode, purpose, depTime, moll, mdll);
 			} else {
 				System.out.println("No coordinate from API!");
+				return null;
 			}
 		}
 
@@ -557,7 +755,10 @@ public class TripGenerator_WebAPI_refactor {
 
 			try {
 				if (activities.size() == 1) {
-					person.addTrip(new Trip(ETransport.NOT_DEFINED, EPurpose.HOME, 0, pre.getLocation(), pre.getLocation()));
+					Trip trip = new Trip(ETransport.NOT_DEFINED, EPurpose.HOME, 0, pre.getLocation(), pre.getLocation());
+					trip.setTripId(++tripCounter);
+					trip.setSubtripId(0);
+					person.addTrip(trip);
 
 					Calendar cl = Calendar.getInstance();
 					Date startDate = new Date(0);
@@ -582,6 +783,8 @@ public class TripGenerator_WebAPI_refactor {
 
 						EPurpose purpose = next.getPurpose();
 						double distance = DistanceUtils.distance(oll, dll);
+
+						int currentTripId = ++tripCounter;
 
 						if (distance > 0) {
 							ETransport nextMode;
@@ -608,14 +811,33 @@ public class TripGenerator_WebAPI_refactor {
 								points.addAll(subpoints);
 
 								long depTime = next.getStartTime() - travelTime;
-								person.addTrip(new Trip(nextMode, purpose, depTime, oll, dll));
+								Trip trip = new Trip(nextMode, purpose, depTime, oll, dll);
+								trip.setTripId(currentTripId);
+								trip.setSubtripId(0);
+								person.addTrip(trip);
 							} else if (nextMode == ETransport.MIX) {
 								if (mixedResultsHolder[0].path("features").get(0) == null) {
 									System.out.println("empty mixed results!");
 								}
-								handleMixedTransport(nextMode, purpose, mixedResultsHolder, subpoints, points, person, next, route, startTime, endTime, oll, dll);
+								List<Trip> mixedTrips = handleMixedTransport(nextMode, purpose, mixedResultsHolder, subpoints, points, next, route, startTime, endTime, oll, dll);
+
+								// Assign tripId, subtripId, and compute repMode for mixed subtrips
+								ETransport repMode = ETransport.NOT_DEFINED;
+								for (int s = 0; s < mixedTrips.size(); s++) {
+									Trip t = mixedTrips.get(s);
+									t.setTripId(currentTripId);
+									t.setSubtripId(s);
+									repMode = Trip.computeRepMode(repMode, t.getTransport());
+								}
+								for (Trip t : mixedTrips) {
+									t.setRepMode(repMode);
+									person.addTrip(t);
+								}
 							} else {
-								person.addTrip(new Trip(ETransport.NOT_DEFINED, next.getPurpose(), next.getStartTime(), pre.getLocation(), pre.getLocation()));
+								Trip trip = new Trip(ETransport.NOT_DEFINED, next.getPurpose(), next.getStartTime(), pre.getLocation(), pre.getLocation());
+								trip.setTripId(currentTripId);
+								trip.setSubtripId(0);
+								person.addTrip(trip);
 								Calendar cl = Calendar.getInstance();
 								Date startDate = new Date(next.getStartTime());
 								configureCalendar(cl, startDate);
@@ -627,7 +849,10 @@ public class TripGenerator_WebAPI_refactor {
 								points.add(new SPoint(pre.getLocation().getLon(), pre.getLocation().getLat(), endDate, ETransport.NOT_DEFINED, EPurpose.HOME));
 							}
 						} else {
-							person.addTrip(new Trip(ETransport.NOT_DEFINED, next.getPurpose(), next.getStartTime(), pre.getLocation(), pre.getLocation()));
+							Trip trip = new Trip(ETransport.NOT_DEFINED, next.getPurpose(), next.getStartTime(), pre.getLocation(), pre.getLocation());
+							trip.setTripId(currentTripId);
+							trip.setSubtripId(0);
+							person.addTrip(trip);
 							Calendar cl = Calendar.getInstance();
 							Date startDate = new Date(next.getStartTime());
 							configureCalendar(cl, startDate);
@@ -662,6 +887,32 @@ public class TripGenerator_WebAPI_refactor {
 			mixedparams.put("MaxRadius", maxRadius);
 			mixedparams.put("MaxRoutes", maxRoutes);
 			return mixedparams;
+		}
+
+		/**
+		 * Build a cache key from API parameters. Coordinates are bucketed to ~500m
+		 * (0.005 degree grid), time to 30-minute intervals. The 500m bucket is within
+		 * MaxRadius (1000m), so the API finds largely the same set of nearby stops.
+		 */
+		private String buildCacheKey(Map<String, String> params) {
+			double oLon = Double.parseDouble(params.get("StartLongitude"));
+			double oLat = Double.parseDouble(params.get("StartLatitude"));
+			double dLon = Double.parseDouble(params.get("GoalLongitude"));
+			double dLat = Double.parseDouble(params.get("GoalLatitude"));
+			// Round to nearest 0.005 degree ≈ 500m bucket
+			String oKey = bucketCoord(oLon) + "," + bucketCoord(oLat);
+			String dKey = bucketCoord(dLon) + "," + bucketCoord(dLat);
+			// Bucket time to 2-hour intervals: "0730" → "06", "0945" → "08"
+			// Transit fares and approximate travel times are stable within 2 hours
+			String appTime = params.get("AppTime");
+			int hhmm = Integer.parseInt(appTime);
+			int h = (hhmm / 100) / 2 * 2;
+			String timeBucket = String.format("%02d", h);
+			return oKey + "|" + dKey + "|" + timeBucket + "|" + params.get("TransportCode");
+		}
+
+		private String bucketCoord(double v) {
+			return String.format("%.3f", Math.round(v / 0.005) * 0.005);
 		}
 
 		@Override
@@ -724,7 +975,13 @@ public class TripGenerator_WebAPI_refactor {
 		}
 	}
 
-	private static JsonNode getMixedRoute(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) {
+	/**
+	 * Call GetMixedRoute API.
+	 *
+	 * @return list of candidate JsonNodes on HTTP 200, or {@code null} on non-200
+	 *         (signals session expiry / auth failure to the caller for retry).
+	 */
+	private static List<JsonNode> getMixedRoutes(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) {
 		String mixedRouteURL = prop.getProperty("api.getMixedRouteURL");
 		if (mixedRouteURL == null) {
 			throw new IllegalStateException("Missing config key: api.getMixedRouteURL");
@@ -736,41 +993,61 @@ public class TripGenerator_WebAPI_refactor {
 			mixedRouteParams.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 		}
 
-        try {
-            mixedRoutePost.setEntity(new UrlEncodedFormEntity(mixedRouteParams));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-        mixedRoutePost.setHeader("Cookie", "WebApiSessionID=" + sessionid);
+		try {
+			mixedRoutePost.setEntity(new UrlEncodedFormEntity(mixedRouteParams));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+		mixedRoutePost.setHeader("Cookie", "WebApiSessionID=" + sessionid);
 
-        HttpResponse mixedRouteResponse = null;
-        try {
-            mixedRouteResponse = executePostRequest(httpClient, mixedRoutePost);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        ObjectMapper mapper = new ObjectMapper();
+		HttpResponse mixedRouteResponse;
+		try {
+			mixedRouteResponse = executePostRequest(httpClient, mixedRoutePost);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
-		if (mixedRouteResponse.getStatusLine().getStatusCode() == 200) {
-            String mixedRouteResponseBody = null;
-            try {
-                mixedRouteResponseBody = EntityUtils.toString(mixedRouteResponse.getEntity());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            try {
-                return mapper.readTree(mixedRouteResponseBody);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-			System.out.println("Failed to get mixed route: " + mixedRouteResponse.getStatusLine().getStatusCode());
-            try {
-                return mapper.readTree("");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+		int status = mixedRouteResponse.getStatusLine().getStatusCode();
+		if (status != 200) {
+			System.err.println("[API] GetMixedRoute returned HTTP " + status + " (session=" + sessionid + ")");
+			try { EntityUtils.consume(mixedRouteResponse.getEntity()); } catch (IOException ignored) {}
+			return null; // non-200 → caller should attempt session refresh + retry
+		}
+
+		String body;
+		try {
+			body = EntityUtils.toString(mixedRouteResponse.getEntity());
+		} catch (IOException e) {
+			throw new RuntimeException("[API FAILURE] Failed to read GetMixedRoute response body", e);
+		}
+		if (body == null || body.trim().isEmpty()) {
+			throw new RuntimeException("[API FAILURE] GetMixedRoute returned HTTP 200 but empty body");
+		}
+
+		// API returns NDJSON (application/x-ndjson): one JSON object per line, separated by \r\n
+		List<JsonNode> candidates = new ArrayList<>();
+		ObjectMapper mapper = new ObjectMapper();
+		int lineCount = 0;
+		int parseFailCount = 0;
+		for (String line : body.split("\r?\n")) {
+			String trimmed = line.trim();
+			if (trimmed.isEmpty()) continue;
+			lineCount++;
+			try {
+				JsonNode node = mapper.readTree(trimmed);
+				if (node.isObject()) {
+					candidates.add(node);
+				}
+				// Integer error codes (11000, 11024, etc.) are valid no-route responses
+			} catch (IOException e) {
+				parseFailCount++;
+			}
+		}
+		if (lineCount > 0 && parseFailCount == lineCount) {
+			throw new RuntimeException("[API FAILURE] GetMixedRoute returned HTTP 200 but all "
+				+ lineCount + " lines failed JSON parse — response body may be HTML/error page");
+		}
+		return candidates;
 	}
 
 	private static JsonNode getRoadRoute(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) throws Exception {
@@ -834,6 +1111,35 @@ public class TripGenerator_WebAPI_refactor {
 		Network station = DataAccessor.loadLocationData(stationFile);
 		japan.setStation(station);
 
+		// Build combined transit stop network for reachability precheck (rail + bus)
+		boolean precheckEnabled = Boolean.parseBoolean(prop.getProperty("api.precheckEnabled", "true"));
+		Network transitStops = null;
+		if (precheckEnabled) {
+			transitStops = new Network(true, false);
+			for (Node n : station.listNodes()) {
+				transitStops.addNode(n);
+			}
+			System.out.println("[transitStops] Railway stations loaded: " + transitStops.nodeCount());
+
+			String busStopDir = prop.getProperty("busStopDir", inputDir + "bus_stop");
+			System.out.println("[transitStops] Bus stop directory: " + busStopDir);
+			// Load bus stops for all target prefectures upfront (STRtree is immutable after first query)
+			for (int i = start; i <= end; i++) {
+				String busZipPath = BusStopLoader.getZipPath(busStopDir, i);
+				if (new File(busZipPath).exists()) {
+					Network busNet = BusStopLoader.load(busZipPath);
+					for (Node n : busNet.listNodes()) {
+						transitStops.addNode(n);
+					}
+				} else {
+					System.err.println("[transitStops] Bus stop file not found: " + busZipPath);
+				}
+			}
+			System.out.println("[transitStops] Total transit stops (rail + bus): " + transitStops.nodeCount());
+		} else {
+			System.out.println("[transitStops] Precheck disabled (api.precheckEnabled=false)");
+		}
+
 		String outputDir = prop.getProperty("outputDir", root);
 
 		for (int i = start; i <= end; i++){
@@ -860,7 +1166,7 @@ public class TripGenerator_WebAPI_refactor {
 			Double bikeRatio = bikeVal != null ? Double.parseDouble(bikeVal) : 0.0;
 
 			// one session per prefecture (was per city file)
-			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway);
+			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway, transitStops);
 
 			// Try outputDir first (chained mainline), fall back to root (legacy/external activity data)
 			// When chained, activity is already sampled — use mfactor=1 to avoid double-sampling
@@ -912,13 +1218,44 @@ public class TripGenerator_WebAPI_refactor {
 
 			// Print mixed-route diagnostics for this prefecture
 			System.out.println("--- Mixed-route diagnostics (pref " + i + ") ---");
-			System.out.println("  AppDate: " + worker.appDate);
+			System.out.println("  AppDate: " + worker.appDate + ", TransportCode: " + worker.transportCode + ", selection: " + worker.transitSelection);
 			System.out.println("  Trips below distance threshold (<" + worker.MIN_TRANSIT_DISTANCE + "m): " + worker.mixedBelowDistThreshold.get());
 			System.out.println("  Mixed-route API queries: " + worker.mixedQueryCount.get());
-			System.out.println("  Transit available (num_station>0 && fare>0): " + worker.mixedTransitAvailable.get());
-			System.out.println("  No station (num_station==0): " + worker.mixedNoStationCount.get());
-			System.out.println("  No fare (fare==0): " + worker.mixedNoFareCount.get());
-			System.out.println("  MIX mode selected (won cost comparison): " + worker.mixedSelectedCount.get());
+			System.out.println("  Transit available (best candidate found): " + worker.mixedTransitAvailable.get());
+			System.out.println("  No valid candidate: " + worker.mixedNoStationCount.get());
+			System.out.println("  Candidates evaluated: " + worker.mixedCandidateTotal.get()
+				+ " (bus-only: " + worker.mixedCandidateBusOnly.get()
+				+ ", train-only: " + worker.mixedCandidateTrainOnly.get()
+				+ ", mixed: " + worker.mixedCandidateMixed.get() + ")");
+			System.out.println("  MIX mode selected (won cost comparison): " + worker.mixedSelectedCount.get()
+				+ " (selected bus-only: " + worker.selectedBusOnly.get()
+				+ ", train-only: " + worker.selectedTrainOnly.get()
+				+ ", mixed: " + worker.selectedMixed.get() + ")");
+			int totalEligible = worker.precheckSkipCount.get() + worker.precheckPassCount.get() + worker.mixedQueryCount.get();
+			System.out.println("  --- Precheck (Feature A) ---");
+			System.out.println("  Precheck skipped (no transit stop near OD): " + worker.precheckSkipCount.get());
+			System.out.println("  Precheck passed: " + worker.precheckPassCount.get());
+			if (totalEligible > 0) {
+				System.out.printf("  Precheck reduction: %.1f%% of eligible trips%n",
+					100.0 * worker.precheckSkipCount.get() / totalEligible);
+			}
+			System.out.println("  --- Cache (Feature B) ---");
+			System.out.println("  Cache hits: " + worker.cacheHitCount.get());
+			System.out.println("  Cache misses (actual API calls): " + worker.cacheMissCount.get());
+			System.out.println("  Cache entries: " + worker.routeCache.size());
+			if (worker.cacheHitCount.get() + worker.cacheMissCount.get() > 0) {
+				System.out.printf("  Cache hit rate: %.1f%%%n",
+					100.0 * worker.cacheHitCount.get() / (worker.cacheHitCount.get() + worker.cacheMissCount.get()));
+			}
+			System.out.printf("  Avg API call time: %.0f ms%n",
+				worker.cacheMissCount.get() > 0 ? (double) worker.cacheSavedMs.get() / worker.cacheMissCount.get() : 0);
+			System.out.println("  --- Session lifecycle ---");
+			System.out.println("  Refresh interval: " + worker.sessionRefreshIntervalMs / 60000 + " min");
+			System.out.println("  Session refreshes: " + worker.sessionRefreshCount.get());
+			System.out.println("  Retry after refresh succeeded: " + worker.sessionRetrySuccessCount.get());
+			System.out.println("  Retry after refresh failed: " + worker.sessionRetryFailCount.get());
+			long sessionAge = (System.currentTimeMillis() - worker.sessionCreatedAt) / 1000;
+			System.out.println("  Final session age: " + sessionAge + "s");
 			System.out.println("---");
 
 		}
