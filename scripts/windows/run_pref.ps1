@@ -10,7 +10,7 @@
 .PARAMETER MFactor
     Sampling factor. Default: 200.
 .PARAMETER OutputRoot
-    Base output directory. Default: C:\pflow_staging\pref_<N>
+    Base output directory. Default: C:\Pseudo-PFLOW\output\pref_<N>
 .PARAMETER ConfigFile
     Optional external config file path.
 .EXAMPLE
@@ -36,7 +36,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectDir = (Resolve-Path "$ScriptDir\..\..").Path
 
 if (-not $OutputRoot) {
-    $OutputRoot = "C:\pflow_staging\pref_$PrefCode"
+    $OutputRoot = "C:\Pseudo-PFLOW\output\pref_$PrefCode"
 }
 
 # Check API credentials

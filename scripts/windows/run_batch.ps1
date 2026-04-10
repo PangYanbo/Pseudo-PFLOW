@@ -11,7 +11,7 @@
     Sampling factor. Default: 200.
 .PARAMETER OutputBase
     Base directory for all output. Each prefecture gets a subdirectory.
-    Default: C:\pflow_staging
+    Default: C:\Pseudo-PFLOW\output
 .EXAMPLE
     .\run_batch.ps1
     .\run_batch.ps1 -PrefCodes 22, 13
@@ -24,7 +24,7 @@ param(
 
     [int]$MFactor = 200,
 
-    [string]$OutputBase = "C:\pflow_staging"
+    [string]$OutputBase = "C:\Pseudo-PFLOW\output"
 )
 
 $ErrorActionPreference = "Continue"

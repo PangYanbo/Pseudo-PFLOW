@@ -44,6 +44,7 @@ public class TrajectoryGenerator {
 
 	private final double MAX_WALK_DISTANCE;
 	private final double MAX_SEARCH_STATAION_DISTANCE;
+	private final int trajectoryBaseYear;
 
 	public TrajectoryGenerator(Network road, Network railway) {
 		this(road, railway, null);
@@ -56,6 +57,8 @@ public class TrajectoryGenerator {
 				? Double.parseDouble(prop.getProperty("max.walk.distance", "3000")) : 3000;
 		this.MAX_SEARCH_STATAION_DISTANCE = prop != null
 				? Double.parseDouble(prop.getProperty("max.station.search.distance", "5000")) : 5000;
+		this.trajectoryBaseYear = prop != null
+				? Integer.parseInt(prop.getProperty("trajectory.baseYear", "2020")) : 2020;
 	}	
 
 	public class RoutingTask implements Callable<Integer>{
@@ -125,10 +128,12 @@ public class TrajectoryGenerator {
 				for (int i = 0; i < nodes.size(); i++) {
 					ILonLat node = nodes.get(i);
 					Date date = timeMap.get(node);
-					Calendar cl = Calendar. getInstance();
+					Calendar cl = Calendar.getInstance();
 					cl.setTime(date);
-					cl.add(Calendar.YEAR, 45);
-					cl.add(Calendar.MONTH, 9);
+					// Set trajectory output to target calendar year and month directly
+					// (legacy pipeline — not used in Windows production)
+					cl.set(Calendar.YEAR, trajectoryBaseYear);
+					cl.set(Calendar.MONTH, Calendar.OCTOBER);
 					date = cl.getTime();
 					if (i == 0) {
 						node = oll;

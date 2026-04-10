@@ -40,6 +40,7 @@ import pseudo.acs.DataAccessor;
 import pseudo.acs.PersonAccessor;
 import pseudo.res.*;
 import utils.ConfigLoader;
+import utils.ParamGroupLoader;
 
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -128,7 +129,7 @@ public class TripGenerator_WebAPI_refactor {
 		this.CAR_AVAILABILITY = Double.parseDouble(prop.getProperty("car.availability", "0.4"));
 		this.appDate = prop.getProperty("api.appDate", "20240401");
 		this.maxRadius = prop.getProperty("api.maxRadius", "1000");
-		this.maxRoutes = prop.getProperty("api.maxRoutes", "9");
+		this.maxRoutes = prop.getProperty("api.maxRoutes", "6");
 		this.transportCode = prop.getProperty("api.transportCode", "3");
 		if (!"1".equals(transportCode) && !"3".equals(transportCode)) {
 			throw new IllegalArgumentException("api.transportCode must be 1 (train) or 3 (bus), got: " + transportCode);
@@ -337,8 +338,10 @@ public class TripGenerator_WebAPI_refactor {
 			calendar.setTime(date);
 			calendar.setTimeZone(timeZone);
 			calendar.add(Calendar.MILLISECOND, -timeZone.getOffset(calendar.getTimeInMillis()));
-			calendar.add(Calendar.YEAR, 45);
-			calendar.add(Calendar.MONTH, 9);
+			// Set trajectory output to target calendar year and month directly
+			int baseYear = Integer.parseInt(prop.getProperty("trajectory.baseYear", "2020"));
+			calendar.set(Calendar.YEAR, baseYear);
+			calendar.set(Calendar.MONTH, Calendar.OCTOBER);
 		}
 
 		private ETransport determineTransportMode(Person person, double distance, Route route, Map<String, String> mixedparams, JsonNode[] mixedResultsHolder){
@@ -1142,6 +1145,22 @@ public class TripGenerator_WebAPI_refactor {
 
 		String outputDir = prop.getProperty("outputDir", root);
 
+		// Load per-city parameter group mapping (if available)
+		String paramGroupMappingPath = prop.getProperty("paramGroup.mappingCsv",
+			inputDir + "../tuning/city_code_to_param_group.csv");
+		String paramGroupDir = prop.getProperty("paramGroup.dir",
+			inputDir + "../tuning/param_groups/");
+		ParamGroupLoader paramGroups = null;
+		File mappingFile = new File(paramGroupMappingPath);
+		File pgDir = new File(paramGroupDir);
+		if (mappingFile.exists() && pgDir.isDirectory()) {
+			paramGroups = ParamGroupLoader.load(
+				mappingFile.getAbsolutePath(), pgDir.getAbsolutePath());
+		} else {
+			System.out.println("[paramGroup] No param group mapping found at "
+				+ mappingFile.getAbsolutePath() + " — using base config for all cities");
+		}
+
 		for (int i = start; i <= end; i++){
 
 			File tripDir = new File(outputDir+"trip/", String.valueOf(i));
@@ -1165,13 +1184,13 @@ public class TripGenerator_WebAPI_refactor {
 			}
 			Double bikeRatio = bikeVal != null ? Double.parseDouble(bikeVal) : 0.0;
 
-			// one session per prefecture (was per city file)
-			TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway, transitStops);
-
 			// Try outputDir first (chained mainline), fall back to root (legacy/external activity data)
 			// When chained, activity is already sampled — use mfactor=1 to avoid double-sampling
 			File actDir = new File(outputDir + "activity/", String.valueOf(i));
-			int loadScale = 1; // chained: already sampled
+			// tuning.loadScale: additional sampling on chained (pre-sampled) activity data.
+			// Default 1 = load all (backward-compatible). Tuning sets higher values to cap sample size.
+			int tuningLoadScale = Integer.parseInt(prop.getProperty("tuning.loadScale", "1"));
+			int loadScale;
 			if (!actDir.isDirectory()) {
 				actDir = new File(root + "activity/", String.valueOf(i));
 				loadScale = mfactor; // fallback: apply sampling here
@@ -1179,86 +1198,149 @@ public class TripGenerator_WebAPI_refactor {
 					System.out.println("Activity input: " + actDir.getAbsolutePath() + " (fallback to root, mfactor=" + mfactor + ")");
 				}
 			} else {
-				System.out.println("Activity input: " + actDir.getAbsolutePath() + " (chained, mfactor=1)");
+				loadScale = tuningLoadScale; // chained: already base-sampled, apply tuning scale
+				System.out.println("Activity input: " + actDir.getAbsolutePath() + " (chained, loadScale=" + loadScale + ")");
 			}
 			File[] actFiles = actDir.listFiles();
 			if (actFiles == null) {
 				System.err.println("Activity directory not found: " + actDir.getAbsolutePath());
 				continue;
 			}
-			for(File file: actFiles){
-				if (file.getName().contains(".csv")) {
-					// Extract city code: "person_22101.csv" -> "22101", "person_22101_labor.csv" -> "22101"
-					String baseName = file.getName().replace(".csv", "");
-					String cityCode = baseName.substring("person_".length());
-					int underscorePos = cityCode.indexOf('_');
-					if (underscorePos > 0) {
-						cityCode = cityCode.substring(0, underscorePos);
+
+			// Group city files by param group so we create one worker per unique group
+			Map<String, List<File>> filesByGroup = new LinkedHashMap<>();
+			for (File file : actFiles) {
+				if (!file.getName().contains(".csv")) continue;
+				String baseName = file.getName().replace(".csv", "");
+				String cityCode = baseName.substring("person_".length());
+				int underscorePos = cityCode.indexOf('_');
+				if (underscorePos > 0) {
+					cityCode = cityCode.substring(0, underscorePos);
+				}
+				// Normalize city code to 5-digit zero-padded
+				if (cityCode.matches("\\d+")) {
+					cityCode = String.format("%05d", Integer.parseInt(cityCode));
+				}
+				String groupKey = "__base__"; // default: no param group overlay
+				if (paramGroups != null) {
+					String groupName = paramGroups.getGroupName(cityCode);
+					if (groupName == null) {
+						throw new RuntimeException("[paramGroup] FAIL-FAST: No param group mapping for city "
+							+ cityCode + ". Add this city to city_code_to_param_group.csv before running.");
 					}
+					// Verify the .properties file exists for the mapped group
+					if (paramGroups.getParamsForCity(cityCode) == null) {
+						throw new RuntimeException("[paramGroup] FAIL-FAST: City " + cityCode
+							+ " maps to group '" + groupName + "' but " + groupName
+							+ ".properties is missing in config/tuning/param_groups/. "
+							+ "Run tuning or copy the file from the owning VM before retrying.");
+					}
+					groupKey = groupName;
+				}
+				filesByGroup.computeIfAbsent(groupKey, k -> new ArrayList<>()).add(file);
+			}
+
+			// Process each param group: create worker with overlaid params, then process cities
+			for (Map.Entry<String, List<File>> entry : filesByGroup.entrySet()) {
+				String groupKey = entry.getKey();
+				List<File> groupFiles = entry.getValue();
+
+				// Apply param group overlay to create effective properties
+				Properties effectiveProp;
+				if ("__base__".equals(groupKey)) {
+					effectiveProp = prop;
+				} else {
+					effectiveProp = paramGroups.overlayForCity(prop,
+						// use first file's city code to look up the group
+						extractCityCode(groupFiles.get(0).getName()));
+					System.out.println("[paramGroup] Group " + groupKey
+						+ " (" + groupFiles.size() + " files): "
+						+ "fare.per.hour=" + effectiveProp.getProperty("fare.per.hour", "?")
+						+ " fatigue.walk=" + effectiveProp.getProperty("fatigue.walk", "?")
+						+ " fare.init=" + effectiveProp.getProperty("fare.init", "?")
+						+ " transferPenalty=" + effectiveProp.getProperty("api.transit.transferPenalty", "?"));
+				}
+
+				// Create worker with effective params (one session per param group)
+				Properties savedProp = prop;
+				prop = effectiveProp;
+				TripGenerator_WebAPI_refactor worker = new TripGenerator_WebAPI_refactor(japan, road, railway, transitStops);
+				prop = savedProp;
+
+				for (File file : groupFiles) {
+					if (!file.getName().contains(".csv")) continue;
+					String cityCode = extractCityCode(file.getName());
 					String tripFileName = outputDir + "trip/" + i + "/trip_" + cityCode + ".csv";
-
 					String trajectoryFileName = outputDir + "trajectory/" + i + "/trajectory_" + cityCode + ".csv";
-
-
-					// Check if the files already exist
-//					if (new File(tripFileName).exists() || new File(trajectoryFileName).exists()) {
-//						continue; // Skip to the next iteration
-//					}
 
 					long starttime = System.currentTimeMillis();
 					List<Person> agents = PersonAccessor.loadActivity(file.getAbsolutePath(), loadScale, carRatio, bikeRatio);
-					System.out.printf("%s%n", file.getName());
+					System.out.printf("[city %s, group %s] %s%n", cityCode, groupKey, file.getName());
 					worker.generate(agents);
 					PersonAccessor.writeTrips(tripFileName, agents);
 					PersonAccessor.writeTrajectory(trajectoryFileName, agents);
 					long endtime = System.currentTimeMillis();
 					System.out.println(file.getName() + ": " + (endtime - starttime));
 				}
-			}
 
-			// Print mixed-route diagnostics for this prefecture
-			System.out.println("--- Mixed-route diagnostics (pref " + i + ") ---");
-			System.out.println("  AppDate: " + worker.appDate + ", TransportCode: " + worker.transportCode + ", selection: " + worker.transitSelection);
-			System.out.println("  Trips below distance threshold (<" + worker.MIN_TRANSIT_DISTANCE + "m): " + worker.mixedBelowDistThreshold.get());
-			System.out.println("  Mixed-route API queries: " + worker.mixedQueryCount.get());
-			System.out.println("  Transit available (best candidate found): " + worker.mixedTransitAvailable.get());
-			System.out.println("  No valid candidate: " + worker.mixedNoStationCount.get());
-			System.out.println("  Candidates evaluated: " + worker.mixedCandidateTotal.get()
-				+ " (bus-only: " + worker.mixedCandidateBusOnly.get()
-				+ ", train-only: " + worker.mixedCandidateTrainOnly.get()
-				+ ", mixed: " + worker.mixedCandidateMixed.get() + ")");
-			System.out.println("  MIX mode selected (won cost comparison): " + worker.mixedSelectedCount.get()
-				+ " (selected bus-only: " + worker.selectedBusOnly.get()
-				+ ", train-only: " + worker.selectedTrainOnly.get()
-				+ ", mixed: " + worker.selectedMixed.get() + ")");
-			int totalEligible = worker.precheckSkipCount.get() + worker.precheckPassCount.get() + worker.mixedQueryCount.get();
-			System.out.println("  --- Precheck (Feature A) ---");
-			System.out.println("  Precheck skipped (no transit stop near OD): " + worker.precheckSkipCount.get());
-			System.out.println("  Precheck passed: " + worker.precheckPassCount.get());
-			if (totalEligible > 0) {
-				System.out.printf("  Precheck reduction: %.1f%% of eligible trips%n",
-					100.0 * worker.precheckSkipCount.get() / totalEligible);
+				// Print mixed-route diagnostics for this group
+				printDiagnostics(worker, i, groupKey);
 			}
-			System.out.println("  --- Cache (Feature B) ---");
-			System.out.println("  Cache hits: " + worker.cacheHitCount.get());
-			System.out.println("  Cache misses (actual API calls): " + worker.cacheMissCount.get());
-			System.out.println("  Cache entries: " + worker.routeCache.size());
-			if (worker.cacheHitCount.get() + worker.cacheMissCount.get() > 0) {
-				System.out.printf("  Cache hit rate: %.1f%%%n",
-					100.0 * worker.cacheHitCount.get() / (worker.cacheHitCount.get() + worker.cacheMissCount.get()));
-			}
-			System.out.printf("  Avg API call time: %.0f ms%n",
-				worker.cacheMissCount.get() > 0 ? (double) worker.cacheSavedMs.get() / worker.cacheMissCount.get() : 0);
-			System.out.println("  --- Session lifecycle ---");
-			System.out.println("  Refresh interval: " + worker.sessionRefreshIntervalMs / 60000 + " min");
-			System.out.println("  Session refreshes: " + worker.sessionRefreshCount.get());
-			System.out.println("  Retry after refresh succeeded: " + worker.sessionRetrySuccessCount.get());
-			System.out.println("  Retry after refresh failed: " + worker.sessionRetryFailCount.get());
-			long sessionAge = (System.currentTimeMillis() - worker.sessionCreatedAt) / 1000;
-			System.out.println("  Final session age: " + sessionAge + "s");
-			System.out.println("---");
 
 		}
 		System.out.println("end");
-	}	
+	}
+
+	/** Extract city code from filename: "person_22101.csv" -> "22101", "person_22101_labor.csv" -> "22101" */
+	private static String extractCityCode(String fileName) {
+		String baseName = fileName.replace(".csv", "");
+		String cityCode = baseName.substring("person_".length());
+		int underscorePos = cityCode.indexOf('_');
+		if (underscorePos > 0) {
+			cityCode = cityCode.substring(0, underscorePos);
+		}
+		return cityCode;
+	}
+
+	private static void printDiagnostics(TripGenerator_WebAPI_refactor worker, int pref, String groupKey) {
+		System.out.println("--- Mixed-route diagnostics (pref " + pref + ", group " + groupKey + ") ---");
+		System.out.println("  AppDate: " + worker.appDate + ", TransportCode: " + worker.transportCode + ", selection: " + worker.transitSelection);
+		System.out.println("  Trips below distance threshold (<" + worker.MIN_TRANSIT_DISTANCE + "m): " + worker.mixedBelowDistThreshold.get());
+		System.out.println("  Mixed-route API queries: " + worker.mixedQueryCount.get());
+		System.out.println("  Transit available (best candidate found): " + worker.mixedTransitAvailable.get());
+		System.out.println("  No valid candidate: " + worker.mixedNoStationCount.get());
+		System.out.println("  Candidates evaluated: " + worker.mixedCandidateTotal.get()
+			+ " (bus-only: " + worker.mixedCandidateBusOnly.get()
+			+ ", train-only: " + worker.mixedCandidateTrainOnly.get()
+			+ ", mixed: " + worker.mixedCandidateMixed.get() + ")");
+		System.out.println("  MIX mode selected (won cost comparison): " + worker.mixedSelectedCount.get()
+			+ " (selected bus-only: " + worker.selectedBusOnly.get()
+			+ ", train-only: " + worker.selectedTrainOnly.get()
+			+ ", mixed: " + worker.selectedMixed.get() + ")");
+		int totalEligible = worker.precheckSkipCount.get() + worker.precheckPassCount.get() + worker.mixedQueryCount.get();
+		System.out.println("  --- Precheck ---");
+		System.out.println("  Precheck skipped (no transit stop near OD): " + worker.precheckSkipCount.get());
+		System.out.println("  Precheck passed: " + worker.precheckPassCount.get());
+		if (totalEligible > 0) {
+			System.out.printf("  Precheck reduction: %.1f%% of eligible trips%n",
+				100.0 * worker.precheckSkipCount.get() / totalEligible);
+		}
+		System.out.println("  --- Cache ---");
+		System.out.println("  Cache hits: " + worker.cacheHitCount.get());
+		System.out.println("  Cache misses (actual API calls): " + worker.cacheMissCount.get());
+		System.out.println("  Cache entries: " + worker.routeCache.size());
+		if (worker.cacheHitCount.get() + worker.cacheMissCount.get() > 0) {
+			System.out.printf("  Cache hit rate: %.1f%%%n",
+				100.0 * worker.cacheHitCount.get() / (worker.cacheHitCount.get() + worker.cacheMissCount.get()));
+		}
+		System.out.printf("  Avg API call time: %.0f ms%n",
+			worker.cacheMissCount.get() > 0 ? (double) worker.cacheSavedMs.get() / worker.cacheMissCount.get() : 0);
+		System.out.println("  --- Session ---");
+		System.out.println("  Session refreshes: " + worker.sessionRefreshCount.get());
+		System.out.println("  Retry after refresh succeeded: " + worker.sessionRetrySuccessCount.get());
+		System.out.println("  Retry after refresh failed: " + worker.sessionRetryFailCount.get());
+		long sessionAge = (System.currentTimeMillis() - worker.sessionCreatedAt) / 1000;
+		System.out.println("  Final session age: " + sessionAge + "s");
+		System.out.println("---");
+	}
 }

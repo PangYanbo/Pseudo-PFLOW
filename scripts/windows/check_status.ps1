@@ -11,7 +11,7 @@
 .PARAMETER PrefCode
     Prefecture code (1-47).
 .PARAMETER OutputRoot
-    Output root directory. Default: C:\pflow_staging\pref_<N>
+    Output root directory. Default: C:\Pseudo-PFLOW\output\pref_<N>
 .EXAMPLE
     .\check_status.ps1 22
     .\check_status.ps1 22 -OutputRoot D:\output\pref_22
@@ -26,7 +26,7 @@ param(
 )
 
 if (-not $OutputRoot) {
-    $OutputRoot = "C:\pflow_staging\pref_$PrefCode"
+    $OutputRoot = "C:\Pseudo-PFLOW\output\pref_$PrefCode"
 }
 
 if (-not (Test-Path $OutputRoot)) {

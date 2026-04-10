@@ -1,27 +1,301 @@
-# Windows machine-specific config overrides
-# Copy to: src\main\resources\config.local.properties
-# This file is gitignored — never commit config.local.properties.
+# =============================================================================
+# Windows config — copy to config.local.properties before running
+# =============================================================================
+# Copy command:
+#   Copy-Item src\main\resources\config.local.properties.windows.example `
+#             src\main\resources\config.local.properties
 #
-# NOTE: Use forward slashes (/) in paths, not backslashes (\).
-# Java Properties requires forward slashes even on Windows.
+# This file is gitignored. Never commit config.local.properties.
+#
+# IMPORTANT: Use forward slashes (/) in ALL paths, not backslashes (\).
+# Java Properties does not handle backslashes correctly.
+#
+# API CREDENTIALS: Do NOT put credentials here.
+# Set PFLOW_API_USER and PFLOW_API_PASS as Windows SYSTEM environment variables
+# (System Properties > Advanced > Environment Variables > System variables).
+# =============================================================================
 
-# --- Input data paths ---
-# All input data (processing/, agent/, markov/, etc.) is under C:/Pseudo-PFLOW/data/
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+
+# Root data directory (all input datasets are under here)
 root=C:/Pseudo-PFLOW/data/
+
+# Processing input data (census, facility, railway, person, markov, etc.)
 inputDir=C:/Pseudo-PFLOW/data/processing/
 
-# Bus stop data (National Land Numerical Information GML zips, P11-22_XX_GML.zip)
+# Pipeline output (activity/, trip/, trajectory/ written here)
+outputDir=C:/Pseudo-PFLOW/output/
+
+# Bus stop GML zips (P11-22_XX_GML.zip per prefecture)
+# Located under processing/ by default; uncomment to override
 # busStopDir=C:/Pseudo-PFLOW/data/processing/bus_stop
 
-# --- Output paths ---
-# Pipeline writes activity/, trip/, trajectory/ under outputDir
-outputDir=C:/pflow_output/
+# -----------------------------------------------------------------------------
+# Markov chain datasets (activity sequence calibration)
+# -----------------------------------------------------------------------------
+# Maps each prefecture (1-47) to a regional Markov chain dataset.
+# These are relative to inputDir. Normally no need to change.
 
-# --- Session settings ---
-# Session refresh interval (minutes). Default: 15.
-# The API session expires after ~19 minutes. Keep this below 19.
-# api.sessionRefreshMinutes=15
+pref.1=markov/asahikawa2002
+pref.2=markov/asahikawa2002
+pref.3=markov/asahikawa2002
+pref.4=markov/asahikawa2002
+pref.5=markov/asahikawa2002
+pref.6=markov/asahikawa2002
+pref.7=markov/asahikawa2002
+pref.8=markov/tokyo2018
+pref.9=markov/tokyo2018
+pref.10=markov/tokyo2018
+pref.11=markov/tokyo2018
+pref.12=markov/tokyo2018
+pref.13=markov/tokyo2018
+pref.14=markov/tokyo2018
+pref.15=markov/tokyo2018
+pref.16=markov/tokyo2018
+pref.17=markov/chukyo2011
+pref.18=markov/chukyo2011
+pref.19=markov/chukyo2011
+pref.20=markov/chukyo2011
+pref.21=markov/chukyo2011
+pref.22=markov/chukyo2011
+pref.23=markov/chukyo2011
+pref.24=markov/chukyo2011
+pref.25=markov/kinki2010
+pref.26=markov/kinki2010
+pref.27=markov/kinki2010
+pref.28=markov/kinki2010
+pref.29=markov/kinki2010
+pref.30=markov/kinki2010
+pref.31=markov/kinki2010
+pref.32=markov/kinki2010
+pref.33=markov/kinki2010
+pref.34=markov/kinki2010
+pref.35=markov/kinki2010
+pref.36=markov/kinki2010
+pref.37=markov/kinki2010
+pref.38=markov/kinki2010
+pref.39=markov/kinki2010
+pref.40=markov/kinki2010
+pref.41=markov/kinki2010
+pref.42=markov/kinki2010
+pref.43=markov/kinki2010
+pref.44=markov/kinki2010
+pref.45=markov/kinki2010
+pref.46=markov/kinki2010
+pref.47=markov/kinki2010
 
-# Transit stop precheck (reduces unnecessary API calls).
-# Set to false to disable precheck and always call the API.
-# api.precheckEnabled=true
+# -----------------------------------------------------------------------------
+# API endpoints (CSIS WebAPI routing service)
+# -----------------------------------------------------------------------------
+# These URLs should not need changing unless the API moves.
+
+api.createSessionURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession
+api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
+api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
+
+# -----------------------------------------------------------------------------
+# API parameters (transit routing)
+# -----------------------------------------------------------------------------
+
+# Timetable date for transit routing (YYYYMMDD format)
+api.appDate=20240401
+
+# Station search radius in meters. API requires this parameter.
+# Also used as the precheck radius (Feature A).
+api.maxRadius=1000
+
+# Max route alternatives returned by the API. All candidates are evaluated;
+# the best is selected by api.transit.selection.
+api.maxRoutes=6
+
+# Transport mode for GetMixedRoute: 3 = bus-oriented (default), 1 = train-oriented.
+# Bus-oriented (3) returns bus+mixed routes; train-oriented (1) returns train+mixed routes.
+api.transportCode=3
+
+# How to select the best transit candidate from multiple API alternatives.
+# Options: generalized_cost (default), min_time, min_fare, min_transfers
+api.transit.selection=generalized_cost
+
+# Penalty per transfer added to generalized cost (yen equivalent). Default 0.
+# Set to e.g. 100 to penalize routes with many transfers.
+api.transit.transferPenalty=0
+
+# -----------------------------------------------------------------------------
+# Session management
+# -----------------------------------------------------------------------------
+
+# Proactive session refresh interval (minutes). Default: 15.
+# The API session expires after ~19 minutes of continuous use.
+# Keep this below 19 to avoid mid-run expiry. 15 is safe.
+api.sessionRefreshMinutes=15
+
+# Transit stop reachability precheck (Feature A).
+# When true, checks if transit stops exist near both origin and destination
+# before calling GetMixedRoute. Saves ~2% of API calls in dense urban areas.
+# Set to false to always call the API (useful for debugging).
+api.precheckEnabled=true
+
+# -----------------------------------------------------------------------------
+# Car and bicycle ownership rates (per prefecture)
+# -----------------------------------------------------------------------------
+# Used by TripGenerator_WebAPI_refactor for mode choice probability weighting.
+# Values are 0.0-1.0. Missing keys default to 0.
+
+car.1=0.534
+car.2=0.586
+car.3=0.612
+car.4=0.564
+car.5=0.612
+car.6=0.648
+car.7=0.667
+car.8=0.695
+car.9=0.694
+car.10=0.712
+car.11=0.439
+car.12=0.450
+car.13=0.220
+car.14=0.331
+car.15=0.631
+car.16=0.686
+car.17=0.641
+car.18=0.670
+car.19=0.691
+car.20=0.617
+car.21=0.657
+car.22=0.914
+car.23=0.558
+car.24=0.657
+car.25=0.574
+car.26=0.387
+car.27=0.314
+car.28=0.424
+car.29=0.492
+car.30=0.589
+car.31=0.626
+car.32=0.610
+car.33=0.617
+car.34=0.522
+car.35=0.611
+car.36=0.636
+car.37=0.623
+car.38=0.559
+car.39=0.574
+car.40=0.510
+car.41=0.628
+car.42=0.533
+car.43=0.597
+car.44=0.618
+car.45=0.634
+car.46=0.602
+car.47=0.593
+
+bike.1=0.379
+bike.2=0.293
+bike.3=0.311
+bike.4=0.355
+bike.5=0.237
+bike.6=0.367
+bike.7=0.299
+bike.8=0.304
+bike.9=0.350
+bike.10=0.299
+bike.11=0.435
+bike.12=0.389
+bike.13=0.194
+bike.14=0.338
+bike.15=0.300
+bike.16=0.289
+bike.17=0.268
+bike.18=0.273
+bike.19=0.265
+bike.20=0.341
+bike.21=0.286
+bike.22=0.313
+bike.23=0.373
+bike.24=0.328
+bike.25=0.352
+bike.26=0.445
+bike.27=0.436
+bike.28=0.364
+bike.29=0.328
+bike.30=0.300
+bike.31=0.343
+bike.32=0.287
+bike.33=0.387
+bike.34=0.356
+bike.35=0.280
+bike.36=0.395
+bike.37=0.429
+bike.38=0.395
+bike.39=0.409
+bike.40=0.317
+bike.41=0.304
+bike.42=0.152
+bike.43=0.306
+bike.44=0.276
+bike.45=0.295
+bike.46=0.275
+bike.47=0.137
+
+# -----------------------------------------------------------------------------
+# Model parameters (distance thresholds, in meters)
+# -----------------------------------------------------------------------------
+# Override per prefecture via config.pref.<N>.properties if needed.
+
+# Max walking distance for trip generation
+max.walk.distance=3000
+
+# Max station search distance (for nearest-station lookup)
+max.station.search.distance=5000
+
+# Trips below this distance skip transit routing (straight to car/walk/bike)
+min.transit.distance=1000
+
+# Max distance for destination search in activity generation
+max.destination.search.distance=20000
+
+# Max distance for school destination assignment
+school.max.distance=5000
+
+# -----------------------------------------------------------------------------
+# Cost model (WebAPI mode choice — generalized cost comparison)
+# -----------------------------------------------------------------------------
+
+# Distance-based fare (yen per km) for car/road cost estimation
+fare.per.kilometer=10
+
+# Time value (yen per hour) — higher values favor faster modes
+fare.per.hour=1000
+
+# Base fare (yen) added to all transit trips
+fare.init=200
+
+# Fatigue multipliers — increase perceived cost of walking/cycling
+# 1.0 = no penalty, higher = more costly (discourages that mode)
+fatigue.walk=1.5
+fatigue.bicycle=1.2
+
+# Baseline car availability ratio (used when prefecture-specific car.<N> is missing)
+car.availability=0.4
+
+# -----------------------------------------------------------------------------
+# Trajectory output
+# -----------------------------------------------------------------------------
+
+# Calendar year for trajectory output timestamps. Default: 2020.
+trajectory.baseYear=2020
+
+# -----------------------------------------------------------------------------
+# Activity generation
+# -----------------------------------------------------------------------------
+
+# Earliest departure time for train-based trips (seconds from midnight; 18000 = 05:00)
+train.service.start=18000
+
+# Time discretization interval for activity scheduling (seconds; 900 = 15 min)
+activity.time.interval=900
+
+# Age threshold for senior-specific activity patterns
+senior.age.threshold=65

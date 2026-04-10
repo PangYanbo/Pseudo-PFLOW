@@ -141,7 +141,7 @@ The validation framework checks activity, trip, and trajectory outputs for corre
 scripts/validate/run_validation.sh 22 /path/to/outputDir
 
 # Windows
-.\scripts\windows\run_validate.ps1 22 C:\pflow_staging\pref_22
+.\scripts\windows\run_validate.ps1 22 C:\Pseudo-PFLOW\output\pref_22
 ```
 
 Produces per-file JSON reports and an aggregate Markdown summary. See [docs/VALIDATION_GUIDE.md](docs/VALIDATION_GUIDE.md) for check rules, thresholds, and baseline interpretation.
@@ -152,7 +152,9 @@ PowerShell scripts are provided under `scripts/windows/` for operating the pipel
 
 | Script | Purpose |
 |--------|---------|
-| `run_pref.ps1` | Full pipeline for one prefecture (activity + trip + validation) |
+| `run_pref_with_tuning.ps1` | Conditional orchestrator: tune missing param groups (if any), then generate |
+| `check_param_groups.ps1` | Precheck whether param groups for a prefecture are ready |
+| `run_pref.ps1` | Full generation pipeline for one prefecture (assumes params ready) |
 | `run_batch.ps1` | Multi-prefecture sequential batch |
 | `run_activity.ps1` | Activity generation only |
 | `run_trip_webapi.ps1` | WebAPI trip + trajectory only |

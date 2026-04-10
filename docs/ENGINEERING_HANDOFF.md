@@ -135,16 +135,54 @@ If the build fails, check:
 - Java version is 11+
 - Network access to Maven Central and OSGeo repositories
 
+## Tuning vs generation (conditional workflow)
+
+The pipeline has two separate phases:
+
+1. **Tuning** — produces per-target-city parameter files in `config/tuning/param_groups/`. Uses LHS sampling and WebAPI scoring against PT survey targets.
+2. **Generation** — reads `data/tuning/city_code_to_param_group.csv` plus the tuned `.properties` files and produces trip + trajectory output.
+
+**On a production VM**, generation must NOT run tuning on the fly. Use the conditional orchestrator:
+
+```powershell
+.\scripts\windows\run_pref_with_tuning.ps1 <pref_code>
+```
+
+Logic:
+- If all required param groups for the prefecture exist → skip tuning, generate directly
+- If LOCAL param groups are missing (this prefecture has tunable target cities) → run tuning, then generate
+- If only EXTERNAL param groups are missing (inherited from another VM) → halt with clear message instructing the engineer to copy the missing files
+- If any city is unmapped in `city_code_to_param_group.csv` → halt before any work
+
+### Files required to skip tuning
+
+For prefecture N (zero-padded as `NN`), generation can run directly when all of these exist:
+
+| File | Required for |
+|------|--------------|
+| `data/tuning/city_code_to_param_group.csv` | Always |
+| `config/tuning/param_groups/<group>.properties` | Every unique `param_group` referenced by cities in pref N |
+
+To check readiness without running anything:
+```powershell
+.\scripts\windows\check_param_groups.ps1 <pref_code>
+```
+
+Exit codes: `0` = complete, `1` = some `.properties` missing, `2` = unmapped cities, `3` = config error.
+
 ## Running the pipeline
 
 ### Quick start: single prefecture
 
 ```powershell
-# Run full pipeline for prefecture 22 (default 0.5% sample)
+# Conditional run (recommended for production VMs)
+.\scripts\windows\run_pref_with_tuning.ps1 22
+
+# Direct generation only (assumes all params already in place)
 .\scripts\windows\run_pref.ps1 22
 ```
 
-This runs activity generation, trip+trajectory generation (WebAPI), and validation in sequence. Output goes to `C:\pflow_staging\pref_22\`.
+Both run activity generation, trip+trajectory generation (WebAPI), and validation. Output goes to `C:\Pseudo-PFLOW\output\pref_22\`.
 
 ### Step-by-step execution
 
@@ -203,15 +241,16 @@ See [CONFIGURATION.md](CONFIGURATION.md) for the full property reference includi
 |----------|---------|-------|
 | `api.transportCode` | `3` | 3=bus-oriented, 1=train-oriented |
 | `api.maxRadius` | `1000` | Station search radius (meters) |
-| `api.maxRoutes` | `9` | Max route alternatives |
+| `api.maxRoutes` | `6` | Max route alternatives |
 | `api.sessionRefreshMinutes` | `15` | Session refresh interval (API expires at ~19 min) |
 | `api.precheckEnabled` | `true` | Transit stop reachability precheck |
+| `trajectory.baseYear` | `2020` | Calendar year for trajectory output timestamps |
 
 ## Output structure
 
 After a run for prefecture 22:
 ```
-C:\pflow_staging\pref_22\
+C:\Pseudo-PFLOW\output\pref_22\
   activity\22\         activity_XXXXX.csv (one per city)
   trip\22\             trip_XXXXX.csv (one per city)
   trajectory\22\       trajectory_XXXXX.csv (one per city)
@@ -225,7 +264,7 @@ See [VALIDATION_GUIDE.md](VALIDATION_GUIDE.md) for detailed check rules and thre
 
 Quick validation after a run:
 ```powershell
-.\scripts\windows\run_validate.ps1 22 C:\pflow_staging\pref_22
+.\scripts\windows\run_validate.ps1 22 C:\Pseudo-PFLOW\output\pref_22
 ```
 
 ### Expected results
@@ -234,7 +273,21 @@ Quick validation after a run:
 
 **Trip**: WARN is normal (placeholder NOT_DEFINED for stay-at-home persons, ~12%). Zero unexpected NOT_DEFINED is good. Expected real-movement mode share for pref 22: CAR ~56%, WALK ~19%, BICYCLE ~15%, BUS ~4%, TRAIN ~2%.
 
-**Trajectory**: Small number of monotonicity violations is acceptable (cosmetic boundary effects). FAILs from legacy output format are known; mainline WebAPI output has <0.1% violations.
+**Trajectory**: Trajectory timestamps should show year 2020 (configured by `trajectory.baseYear`).
+
+### Trajectory validation acceptance rules
+
+| Check | Classification | Action |
+|-------|---------------|--------|
+| Placeholder NOT_DEFINED (zero-distance) | Non-blocking | Expected artifact (~12%) |
+| Timestamp monotonicity: boundary effects (<0.5%) | Non-blocking | Minor cosmetic |
+| Timestamp monotonicity: same-mode within-trip (>1%) | Warning | Investigate if >5% |
+| Spatial jumps >50km (>1% of files) | **Blocking** | Routing failure |
+| Speed >500 km/h (>1% of files) | **Blocking** | Routing failure |
+| Duplicate rows (>5%) | **Blocking** | Generation bug |
+| Year in trajectory != 2020 | **Blocking** | Config fix needed |
+
+**Engineer rule**: If the validation summary shows 0 FAIL files, the run is PASS. WARN files from placeholder NOT_DEFINED are expected and non-blocking. Any FAIL file requires checking the specific error type against the table above.
 
 ## Troubleshooting
 
@@ -284,7 +337,7 @@ To split prefectures across multiple Windows servers:
 4. Validate on each machine:
 ```powershell
 foreach ($p in 1..15) {
-    .\scripts\windows\run_validate.ps1 $p C:\pflow_staging\pref_$p
+    .\scripts\windows\run_validate.ps1 $p C:\Pseudo-PFLOW\output\pref_$p
 }
 ```
 

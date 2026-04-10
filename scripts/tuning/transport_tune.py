@@ -108,7 +108,7 @@ def run_activity_generator(pref_code, mfactor, output_dir):
     with open(log_file, "w") as log:
         result = subprocess.run(
             cmd, cwd=str(PROJECT_ROOT), stdout=log, stderr=subprocess.STDOUT,
-            env=MVN_ENV, timeout=7200,
+            env=MVN_ENV, timeout=14400,
         )
     elapsed = time.time() - start
 
@@ -120,47 +120,135 @@ def run_activity_generator(pref_code, mfactor, output_dir):
     return True
 
 
-def setup_filtered_activity(candidate_dir, pref_code, shared_activity_dir, target_codes):
-    """Create a filtered activity dir with symlinks to only target city files.
+def setup_sampled_activity(candidate_dir, pref_code, shared_activity_dir,
+                            target_codes, cap_per_city=2000, seed=42):
+    """Create a filtered activity dir with per-city person-level sampling.
 
-    TripGenerator processes ALL files in the activity dir. For Stage 1 (representative
-    city only), we symlink just that city's file(s) to avoid processing all cities.
+    Two-stage sampling policy:
+      Stage 1 (already done): ActivityGenerator at mfactor=200 (0.5% global)
+      Stage 2 (this function): per target city, if persons > cap_per_city,
+               sample down to cap_per_city. Cities at or below cap are kept in full.
 
-    Note: With chained activity, TripGenerator uses loadScale=1 (loads all persons).
-    For tuning, we use the root fallback path instead, so TripGenerator applies
-    mfactor-based sampling. This is controlled by NOT creating the activity symlink
-    when use_root_fallback=True (see run_trip_generator).
+    For aggregated target cities (multiple ward files), the cap applies to the
+    city as a whole. Budget is distributed proportionally across ward files.
+    Sampling is person-level (all activity lines for a person are kept together).
+    Fixed seed for reproducibility.
+
+    Returns (total_persons, details_str).
     """
+    import random
+    from collections import OrderedDict
+
     filtered_dir = candidate_dir / "activity" / str(pref_code)
     if filtered_dir.is_dir() and any(filtered_dir.iterdir()):
-        return 0  # already set up
+        existing = len(list(filtered_dir.glob("*.csv")))
+        return existing, "(reused existing)"
     filtered_dir.mkdir(parents=True, exist_ok=True)
 
-    linked = 0
+    rng = random.Random(seed)
+    total_persons = 0
+    details = []
+
+    for code in target_codes:
+        files = resolve_activity_files(code, str(shared_activity_dir))
+        if not files:
+            continue
+
+        # Group lines by person_id (column 0) per file
+        file_persons = OrderedDict()  # filepath -> OrderedDict{pid -> [lines]}
+        city_person_count = 0
+        for f in files:
+            persons = OrderedDict()
+            with open(f) as fh:
+                for line in fh:
+                    pid = line.split(",", 1)[0].strip()
+                    if pid not in persons:
+                        persons[pid] = []
+                    persons[pid].append(line)
+            file_persons[f] = persons
+            city_person_count += len(persons)
+
+        # Decide: keep all or cap
+        needs_cap = city_person_count > cap_per_city
+        city_sampled = 0
+
+        if not needs_cap:
+            # City is at or below cap — copy all files in full
+            for f, persons in file_persons.items():
+                out_path = filtered_dir / Path(f).name
+                with open(out_path, "w") as out:
+                    for pid_lines in persons.values():
+                        out.writelines(pid_lines)
+                city_sampled += len(persons)
+            tag = "kept all"
+        else:
+            # City exceeds cap — proportional person-level sampling across wards
+            for f, persons in file_persons.items():
+                n_persons = len(persons)
+                file_budget = max(1, round(cap_per_city * n_persons / city_person_count))
+                file_budget = min(file_budget, n_persons)
+
+                pids = list(persons.keys())
+                sampled_pids = rng.sample(pids, file_budget)
+
+                out_path = filtered_dir / Path(f).name
+                with open(out_path, "w") as out:
+                    for pid in sampled_pids:
+                        out.writelines(persons[pid])
+                city_sampled += len(sampled_pids)
+            tag = f"capped {city_person_count}->{city_sampled}"
+
+        total_persons += city_sampled
+        details.append(f"{code}: {city_sampled} ({tag})")
+
+    return total_persons, ", ".join(details)
+
+
+def compute_tuning_load_scale(shared_activity_dir, pref_code, target_codes,
+                               budget_per_city=1500):
+    """Compute tuning.loadScale to cap sample at ~budget_per_city per target city.
+
+    Counts total persons across all linked activity files for the target cities,
+    then computes a loadScale so the aggregate stays within budget.
+
+    Returns (loadScale, total_persons, effective_persons).
+    """
+    total = 0
     for code in target_codes:
         files = resolve_activity_files(code, str(shared_activity_dir))
         for f in files:
-            link_name = filtered_dir / Path(f).name
-            if not link_name.exists():
-                os.symlink(f, link_name)
-                linked += 1
-    return linked
+            total += sum(1 for _ in open(f))
+
+    budget = budget_per_city * len(target_codes)
+    load_scale = max(1, total // budget)
+    effective = total // load_scale if load_scale > 0 else total
+    return load_scale, total, effective
+
+
+def inject_load_scale(config_path, load_scale):
+    """Append tuning.loadScale to a config file if not already present."""
+    content = Path(config_path).read_text()
+    if "tuning.loadScale" in content:
+        return  # already set
+    with open(config_path, "a") as f:
+        f.write(f"\n# Tuning sample control (computed per-run)\n")
+        f.write(f"tuning.loadScale={load_scale}\n")
 
 
 def run_trip_generator(pref_code, config_id, config_path, mfactor, stage_dir, target_codes):
     """Run TripGenerator_WebAPI_refactor with a specific config overlay.
 
-    Only target city activity files are linked into the candidate dir,
-    so TripGenerator processes only the cities we need to score.
+    Creates pre-sampled activity copies (capped at ~2000 per target city)
+    in the candidate dir, so TripGenerator processes only the sampled data.
     """
     candidate_dir = stage_dir / config_id
     candidate_dir.mkdir(parents=True, exist_ok=True)
 
-    # Link only target city activity files
+    # Create per-city sampled activity copies (not symlinks)
     shared_activity = stage_dir.parent / "activity" / str(pref_code)
-    n_linked = setup_filtered_activity(candidate_dir, pref_code, shared_activity, target_codes)
-    if n_linked:
-        print(f"[trip:{config_id}] Linked {n_linked} activity files for {len(target_codes)} target cities")
+    n_written, details = setup_sampled_activity(
+        candidate_dir, pref_code, shared_activity, target_codes)
+    print(f"[trip:{config_id}] Sampled activity: {n_written} persons ({details})")
 
     cmd = [
         "mvn", "-q", "exec:java",
@@ -179,7 +267,7 @@ def run_trip_generator(pref_code, config_id, config_path, mfactor, stage_dir, ta
     with open(log_file, "w") as log:
         result = subprocess.run(
             cmd, cwd=str(PROJECT_ROOT), stdout=log, stderr=subprocess.STDOUT,
-            env=MVN_ENV, timeout=7200,
+            env=MVN_ENV, timeout=14400,
         )
     elapsed = time.time() - start
 
@@ -241,12 +329,8 @@ def run_stage(pref_code, stage_num, mfactor=200, score_only=False, seed=42):
 
     rep_city = pick_representative_city(pref_targets)
 
-    # Stage 1: representative city only for generation, but score all targets
-    # Stage 2: all target cities for both generation and scoring
-    if stage_num == 1:
-        gen_cities = [rep_city]
-    else:
-        gen_cities = list(pref_targets.keys())
+    # Generate trips for ALL target cities so per-city scoring works
+    gen_cities = list(pref_targets.keys())
 
     print(f"Prefecture {pref_code}: {len(pref_targets)} target cities, "
           f"representative={rep_city} ({pref_targets[rep_city]['city_name']})")

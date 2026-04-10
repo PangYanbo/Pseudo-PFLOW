@@ -102,7 +102,7 @@ api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
 api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
 api.appDate=20240401
 api.maxRadius=1000
-api.maxRoutes=9
+api.maxRoutes=6
 api.transportCode=3
 api.transit.selection=generalized_cost
 api.transit.transferPenalty=0
@@ -110,7 +110,7 @@ api.transit.transferPenalty=0
 
 - `api.appDate`: timetable date for transit routing (YYYYMMDD)
 - `api.maxRadius`: station search radius in meters (required by API; default 1000)
-- `api.maxRoutes`: max route alternatives returned (required by API; default 9). All candidates are evaluated; the best is selected by `api.transit.selection`.
+- `api.maxRoutes`: max route alternatives returned (required by API; default 6). All candidates are evaluated; the best is selected by `api.transit.selection`.
 - `api.transportCode`: `3` = bus-oriented routing (default), `1` = train-oriented routing. The API returns up to `maxRoutes` candidates matching the requested transport type. Fails fast if set to any other value.
 - `api.transit.selection`: how to select the best transit candidate from multiple API alternatives. Options: `generalized_cost` (default, `fare + time/60 * fare.per.hour + transfers * transferPenalty`), `min_time`, `min_fare`, `min_transfers`.
 - `api.transit.transferPenalty`: penalty per transfer added to generalized cost (default 0, backward-compatible). Set to e.g. 100 to penalize routes with many transfers.
@@ -143,6 +143,7 @@ The generator fails fast with `IllegalStateException` if these are missing or bl
 | `fatigue.bicycle` | 1.2 | multiplier | TripGenerator_WebAPI_refactor |
 | `car.availability` | 0.4 | ratio | TripGenerator_WebAPI_refactor |
 | `train.service.start` | 18000 | seconds | AbstractActivityGenerator |
+| `trajectory.baseYear` | 2020 | year | TripGenerator_WebAPI_refactor, TrajectoryGenerator |
 | `activity.time.interval` | 900 | seconds | AbstractActivityGenerator |
 | `senior.age.threshold` | 65 | years | NonCommuterActivityGenerator |
 
