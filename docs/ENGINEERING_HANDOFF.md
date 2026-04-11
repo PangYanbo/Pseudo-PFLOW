@@ -271,7 +271,11 @@ Quick validation after a run:
 
 **Activity**: All files should PASS. Purpose mix: HOME ~55%, FREE ~15%, OFFICE ~11%.
 
-**Trip**: WARN is normal (placeholder NOT_DEFINED for stay-at-home persons, ~12%). Zero unexpected NOT_DEFINED is good. Expected real-movement mode share for pref 22: CAR ~56%, WALK ~19%, BICYCLE ~15%, BUS ~4%, TRAIN ~2%.
+**Trip**: WARN is normal (placeholder NOT_DEFINED for stay-at-home persons, ~5–12%). Zero unexpected NOT_DEFINED is good.
+
+**IMPORTANT — two mode share metrics**: The validation summary reports `[PRIMARY]` trip-level mode share (via `rep_mode`) and `[SECONDARY]` subtrip-level distribution. **Use the `[PRIMARY]` table when comparing to tuning targets or judging realism** — it is the only metric directly comparable to `transport_share_targets.csv`. The `[SECONDARY]` table inflates WALK/transit share because multi-leg transit trips are counted as several rows. See [VALIDATION_GUIDE.md](VALIDATION_GUIDE.md#mode-share-metrics-primary-vs-secondary) for the full explanation.
+
+Expected **trip-level** mode share for pref 22: CAR ~57%, WALK ~23%, BICYCLE ~14%, BUS <1%, TRAIN <1% (under current tuned parameters).
 
 **Trajectory**: Trajectory timestamps should show year 2020 (configured by `trajectory.baseYear`).
 

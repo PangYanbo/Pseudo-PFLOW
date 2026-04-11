@@ -123,14 +123,51 @@ Transport mode 0 (`NOT_DEFINED`) is split into two categories:
 
 Console output shows both counts per file: `ND:755p+0u` means 755 placeholder, 0 unexpected.
 
-## Real-movement mode share
+## Mode share metrics: primary vs secondary
 
-The summary reports two mode share tables:
+The trip validation summary reports **two different mode-share metrics** at different aggregation levels. They are not interchangeable.
 
-1. **Transport mode distribution** — raw counts including all NOT_DEFINED
-2. **Real-movement mode share** — excludes placeholder NOT_DEFINED; only unexpected NOT_DEFINED counts toward the NOT_DEFINED share
+### [PRIMARY] Trip-level mode share (rep_mode)
 
-This lets you read the effective mode split without placeholder trips distorting the percentages.
+This is the metric that is **directly comparable to `data/tuning/transport_share_targets.csv`** and is the one to use when judging:
+- Whether tuned parameters are working
+- Whether mode split realism is acceptable
+- Production quality vs. PT survey ground truth
+
+**How it is computed**: deduplicate trip rows on `(person_id, trip_id)`, then count each unique trip once using its `rep_mode` value (column 11, 12-column format). A multi-leg transit trip like `walk → bus → walk` counts as **1 BUS trip**.
+
+### [SECONDARY] Subtrip-level mode distribution (transport_id)
+
+This is the raw per-row count of the `transport_id` column (column 6). Useful for:
+- Counting individual bus/train segments
+- Analyzing transfer structure
+- Segment-level routing diagnostics
+
+**Not directly comparable to tuning targets**: a multi-leg transit trip like `walk → bus → walk` counts as **2 WALK + 1 BUS = 3 rows**, inflating WALK share.
+
+### Why the two differ
+
+For pref 22 with config_003, the same data produces:
+
+| Mode | Trip-level (primary) | Subtrip-level (secondary) |
+|------|---------------------|---------------------------|
+| CAR | 57.3% | 56.9% |
+| WALK | 23.4% | 23.5% |
+| BICYCLE | 14.4% | 14.3% |
+| NOT_DEFINED | 4.7% | 4.7% |
+| BUS | 0.2% (6 trips) | 0.6% (20 segments) |
+| TRAIN | 0.0% (1 trip) | 0.1% (2 segments) |
+
+The BUS/TRAIN gap shows each transit trip averages ~3 subtrip segments (access walk + transit + egress walk).
+
+**Rule**: When comparing to tuning targets, use the PRIMARY table. When analyzing transit coverage, use the SECONDARY table.
+
+### NOT_DEFINED breakdown (still subtrip-level)
+
+- **Placeholder** (zero-distance): stay-at-home / return-to-same-location markers. Always WARN-only.
+- **Unexpected** (nonzero-distance): real movement with no mode assigned. WARN > 1%, FAIL > 5%.
+
+Console output per file: `ND:755p+0u` = 755 placeholder, 0 unexpected.
 
 ## Prefecture 22 baseline (2026-03-11)
 

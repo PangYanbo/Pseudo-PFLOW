@@ -84,36 +84,77 @@ $TripDir = $Dirs["trip"]
 if ((Test-Path $TripDir) -and (Get-ChildItem -Path $TripDir -Filter "*.csv" | Measure-Object).Count -gt 0) {
     Write-Host "--- Mode share (trip files) ---" -ForegroundColor Yellow
 
-    # Transport mode mapping
+    # ETransport enum (matches pseudo.res.ETransport ordinals)
     $ModeNames = @{
         0 = "NOT_DEFINED"
-        1 = "TRAIN"
-        2 = "BUS"
+        1 = "WALK"
+        2 = "BICYCLE"
         3 = "CAR"
-        4 = "BICYCLE"
-        5 = "WALK"
-        6 = "TAXI"
+        4 = "TRAIN"
+        5 = "BUS"
+        6 = "MIX"
+        7 = "COMMUNITY"
     }
 
-    $ModeCounts = @{}
-    $TotalTrips = 0
+    # Primary: trip-level mode share via rep_mode (column 11 in 12-col format)
+    # deduplicated on (person_id, trip_id)
+    $TripRepModes = @{}  # "pid|tripid" -> rep_mode
+    # Secondary: subtrip-level counts from transport_id (column 6)
+    $SubtripCounts = @{}
+    $TotalSubtrips = 0
+    $HasTripIds = $false
 
     Get-ChildItem -Path $TripDir -Filter "*.csv" | ForEach-Object {
-        Import-Csv -Path $_.FullName -Header @("pid","dep","olon","olat","dlon","dlat","mode","purpose","labor") |
-        ForEach-Object {
-            $Mode = [int]$_.mode
-            if (-not $ModeCounts.ContainsKey($Mode)) { $ModeCounts[$Mode] = 0 }
-            $ModeCounts[$Mode]++
-            $TotalTrips++
+        $lines = Get-Content -Path $_.FullName
+        foreach ($line in $lines) {
+            if (-not $line) { continue }
+            $cols = $line -split ','
+            if ($cols.Count -lt 9) { continue }
+            $TotalSubtrips++
+            $subMode = [int]$cols[6]
+            if (-not $SubtripCounts.ContainsKey($subMode)) { $SubtripCounts[$subMode] = 0 }
+            $SubtripCounts[$subMode]++
+            # 12-column format has trip_id at col 9, rep_mode at col 11
+            if ($cols.Count -ge 12) {
+                $HasTripIds = $true
+                $pid = $cols[0]
+                $tid = $cols[9]
+                $rep = [int]$cols[11]
+                $key = "$pid|$tid"
+                if (-not $TripRepModes.ContainsKey($key)) {
+                    $TripRepModes[$key] = $rep
+                }
+            }
         }
     }
 
-    if ($TotalTrips -gt 0) {
-        Write-Host "  Total trips: $TotalTrips"
-        $ModeCounts.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
-            $Pct = [math]::Round($_.Value / $TotalTrips * 100, 1)
+    # Primary: trip-level (rep_mode)
+    if ($HasTripIds -and $TripRepModes.Count -gt 0) {
+        $TripCounts = @{}
+        foreach ($rep in $TripRepModes.Values) {
+            if (-not $TripCounts.ContainsKey($rep)) { $TripCounts[$rep] = 0 }
+            $TripCounts[$rep]++
+        }
+        $NumTrips = $TripRepModes.Count
+        Write-Host "  [PRIMARY] Trip-level mode share (rep_mode, $NumTrips trips) -- comparable to tuning targets:" -ForegroundColor Cyan
+        $TripCounts.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
+            $Pct = [math]::Round($_.Value / $NumTrips * 100, 1)
             $Name = if ($ModeNames.ContainsKey($_.Key)) { $ModeNames[$_.Key] } else { "MODE_$($_.Key)" }
-            Write-Host ("  {0,-15} {1,8:N0}  ({2,5:N1}%)" -f $Name, $_.Value, $Pct)
+            Write-Host ("    {0,-15} {1,8:N0}  ({2,5:N1}%)" -f $Name, $_.Value, $Pct)
+        }
+        Write-Host ""
+    } else {
+        Write-Host "  [PRIMARY] Trip-level rep_mode not available (trip files use legacy 9-col format)" -ForegroundColor DarkYellow
+        Write-Host ""
+    }
+
+    # Secondary: subtrip-level (transport_id)
+    if ($TotalSubtrips -gt 0) {
+        Write-Host "  [SECONDARY] Subtrip-level mode counts (transport_id, $TotalSubtrips rows) -- for transit/segment analysis:" -ForegroundColor DarkGray
+        $SubtripCounts.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
+            $Pct = [math]::Round($_.Value / $TotalSubtrips * 100, 1)
+            $Name = if ($ModeNames.ContainsKey($_.Key)) { $ModeNames[$_.Key] } else { "MODE_$($_.Key)" }
+            Write-Host ("    {0,-15} {1,8:N0}  ({2,5:N1}%)" -f $Name, $_.Value, $Pct)
         }
     }
     Write-Host ""

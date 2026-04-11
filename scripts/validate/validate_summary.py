@@ -81,18 +81,33 @@ def render_section(title, report):
                 lines.append("")
 
         elif report["type"] == "trip":
-            # Aggregate mode share (count-based)
-            agg_mode = {}
+            # ── PRIMARY: trip-level mode share via rep_mode ───────────────
+            # This is the metric comparable to tuning targets in transport_share_targets.csv.
+            # Deduplicated on (person_id, trip_id); uses each trip's representative mode.
+            agg_trip_mode = {}
+            total_tuning_trips = 0
             for r in all_files:
-                for name, info in r["stats"].get("mode_share", {}).items():
-                    agg_mode[name] = agg_mode.get(name, 0) + info.get("count", 0)
-            if agg_mode:
-                lines.append("### Transport mode distribution (aggregate)")
+                trip_share = r["stats"].get("trip_level_mode_share", {})
+                for name, info in trip_share.items():
+                    agg_trip_mode[name] = agg_trip_mode.get(name, 0) + info.get("count", 0)
+                total_tuning_trips += r["stats"].get("num_trips", 0)
+
+            if agg_trip_mode:
+                lines.append("### [PRIMARY] Trip-level mode share (rep_mode)")
                 lines.append("")
-                total_trips = sum(agg_mode.values())
-                for k in sorted(agg_mode.keys()):
-                    pct = agg_mode[k] / total_trips * 100
-                    lines.append(f"- {k}: {agg_mode[k]:,} ({pct:.1f}%)")
+                lines.append("_Comparable to transport_share_targets.csv. Use this metric to judge tuning/realism._")
+                lines.append("")
+                total_trip_count = sum(agg_trip_mode.values())
+                for k in sorted(agg_trip_mode.keys()):
+                    pct = agg_trip_mode[k] / total_trip_count * 100 if total_trip_count else 0
+                    lines.append(f"- {k}: {agg_trip_mode[k]:,} ({pct:.1f}%)")
+                lines.append("")
+                lines.append(f"_Total trips (deduplicated): {total_trip_count:,}_")
+                lines.append("")
+            else:
+                lines.append("### [PRIMARY] Trip-level mode share (rep_mode)")
+                lines.append("")
+                lines.append("_Not available: trip files use the legacy 9-column format without trip_id/rep_mode._")
                 lines.append("")
 
             # Aggregate NOT_DEFINED breakdown
@@ -101,20 +116,38 @@ def render_section(title, report):
             agg_nd_unexpected = sum(r["stats"].get("not_defined", {}).get("unexpected_nonzero_dist", 0) for r in all_files)
             total_rows = report.get("total_rows", 0) or 1
             if agg_nd_total > 0:
-                lines.append("### NOT_DEFINED breakdown (aggregate)")
+                lines.append("### NOT_DEFINED breakdown (aggregate, subtrip-level)")
                 lines.append("")
                 lines.append(f"- Total NOT_DEFINED: {agg_nd_total:,} ({agg_nd_total/total_rows*100:.1f}%)")
                 lines.append(f"  - Placeholder (zero-distance): {agg_nd_placeholder:,} ({agg_nd_placeholder/total_rows*100:.1f}%)")
                 lines.append(f"  - Unexpected (nonzero-distance): {agg_nd_unexpected:,} ({agg_nd_unexpected/total_rows*100:.1f}%)")
                 lines.append("")
 
-            # Aggregate real-movement mode share
+            # ── SECONDARY: subtrip-level transport_id distribution ────────
+            # Useful for counting individual bus/train segments, transfer structure, etc.
+            # NOT comparable to tuning targets because multi-leg trips are counted multiple times.
+            agg_mode = {}
+            for r in all_files:
+                for name, info in r["stats"].get("mode_share", {}).items():
+                    agg_mode[name] = agg_mode.get(name, 0) + info.get("count", 0)
+            if agg_mode:
+                lines.append("### [SECONDARY] Subtrip-level mode distribution (transport_id)")
+                lines.append("")
+                lines.append("_For segment-level analysis (transit usage, transfers). NOT directly comparable to tuning targets._")
+                lines.append("")
+                total_sub = sum(agg_mode.values())
+                for k in sorted(agg_mode.keys()):
+                    pct = agg_mode[k] / total_sub * 100
+                    lines.append(f"- {k}: {agg_mode[k]:,} ({pct:.1f}%)")
+                lines.append("")
+
+            # Aggregate real-movement mode share (still subtrip-level; kept for backward compat)
             agg_real = {}
             for r in all_files:
                 for name, info in r["stats"].get("real_movement_mode_share", {}).items():
                     agg_real[name] = agg_real.get(name, 0) + info.get("count", 0)
             if agg_real:
-                lines.append("### Real-movement mode share (excluding placeholder NOT_DEFINED)")
+                lines.append("### [SECONDARY] Subtrip real-movement mode share (excluding placeholder NOT_DEFINED)")
                 lines.append("")
                 total_real = sum(agg_real.values())
                 for k in sorted(agg_real.keys()):
