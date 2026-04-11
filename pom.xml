@@ -110,12 +110,7 @@
     <version>20231013</version>
    </dependency>
    
-   <dependency>
-	<groupId>org.opentripplanner</groupId>
-	<artifactId>otp</artifactId>
-	<version>1.4.0</version>
-	<scope>provided</scope>
-   </dependency>
+   <!-- OTP dependency removed: non-mainline trip generator variants that used it are excluded from the build -->
    <dependency>
 	<groupId>com.fasterxml.jackson.core</groupId>
 	<artifactId>jackson-databind</artifactId>
@@ -143,6 +138,22 @@
 				<configuration>
 					<source>11</source>
 					<target>11</target>
+					<!--
+					Exclude non-mainline source paths from the default build.
+					These files reference optional dependencies (OTP, OneBusAway,
+					Netty, GeoJSON, Apache Axis) that are no longer in the POM.
+					The Windows handoff mainline does not use them.
+					-->
+					<excludes>
+						<exclude>archive/**</exclude>
+						<exclude>dcity/**</exclude>
+						<exclude>gtfs/**</exclude>
+						<exclude>pseudo/gen/TripGenerator_WebAPI.java</exclude>
+						<exclude>pseudo/gen/TripGenerator_WebAPI_refactor2.java</exclude>
+						<exclude>pseudo/gen/TripGenerator_WebAPI_GTFS.java</exclude>
+						<exclude>pseudo/gen/TripGenerator_WebAPI_GTFS_OpenTripPlanner.java</exclude>
+						<exclude>pseudo/gen/STInterpolatedPoints.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>
