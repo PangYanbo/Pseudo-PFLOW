@@ -127,7 +127,11 @@ def write_config(filepath, params, output_dir=None):
     with open(filepath, "w") as f:
         f.write(f"# Generated tuning config: {os.path.basename(filepath)}\n")
         if output_dir:
-            f.write(f"outputDir={output_dir}\n")
+            # Java Properties treats '\' as an escape character, so raw
+            # Windows paths get mangled on load. Always serialize paths
+            # with forward slashes — Java accepts them on all platforms.
+            output_dir_fs = str(output_dir).replace("\\", "/")
+            f.write(f"outputDir={output_dir_fs}\n")
         for key in sorted(params.keys()):
             val = params[key]
             # Write integers without decimal point

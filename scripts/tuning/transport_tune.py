@@ -132,9 +132,14 @@ def run_activity_generator(pref_code, mfactor, output_dir):
     """
     activity_config = output_dir / "activity_config.properties"
     activity_config.parent.mkdir(parents=True, exist_ok=True)
+    # Java Properties treats backslash as an escape character (\t, \n, etc.),
+    # so raw Windows paths like C:\Pseudo-PFLOW\... get mangled on load.
+    # Always serialize paths with forward slashes — Java accepts them on
+    # every platform including Windows.
+    output_dir_fs = str(output_dir).replace("\\", "/")
     with open(activity_config, "w") as f:
         f.write(f"# Activity generation config\n")
-        f.write(f"outputDir={output_dir}/\n")
+        f.write(f"outputDir={output_dir_fs}/\n")
 
     cmd = [
         MVN, "-q", "exec:java",
