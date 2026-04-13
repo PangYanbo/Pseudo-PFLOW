@@ -1145,11 +1145,19 @@ public class TripGenerator_WebAPI_refactor {
 
 		String outputDir = prop.getProperty("outputDir", root);
 
-		// Load per-city parameter group mapping (if available)
+		// Load per-city parameter group mapping (if available).
+		// The canonical mapping CSV and the per-city .properties files live in
+		// the PROJECT directory (under version control), NOT the data directory.
+		// Default paths resolve relative to user.dir (the project root when run
+		// via `mvn exec:java`). Operators can override explicitly in
+		// config.local.properties:
+		//     paramGroup.mappingCsv=C:/Pseudo-PFLOW/Pseudo-PFLOW/data/tuning/city_code_to_param_group.csv
+		//     paramGroup.dir=C:/Pseudo-PFLOW/Pseudo-PFLOW/config/tuning/param_groups/
+		String projectRoot = System.getProperty("user.dir", ".");
 		String paramGroupMappingPath = prop.getProperty("paramGroup.mappingCsv",
-			inputDir + "../tuning/city_code_to_param_group.csv");
+			projectRoot + "/data/tuning/city_code_to_param_group.csv");
 		String paramGroupDir = prop.getProperty("paramGroup.dir",
-			inputDir + "../tuning/param_groups/");
+			projectRoot + "/config/tuning/param_groups/");
 		ParamGroupLoader paramGroups = null;
 		File mappingFile = new File(paramGroupMappingPath);
 		File pgDir = new File(paramGroupDir);

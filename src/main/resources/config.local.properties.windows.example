@@ -32,6 +32,18 @@ outputDir=C:/Pseudo-PFLOW/output/
 # Located under processing/ by default; uncomment to override
 # busStopDir=C:/Pseudo-PFLOW/data/processing/bus_stop
 
+# --- Per-city parameter group loading (tuning output) ---
+# The canonical city→group mapping CSV and the per-city .properties files
+# live inside the PROJECT directory (under version control), NOT the data
+# directory. On Windows the project is typically at C:/Pseudo-PFLOW/Pseudo-PFLOW/
+# so the paths below must point into it, not into C:/Pseudo-PFLOW/data/.
+#
+# If these are omitted, the runtime falls back to {user.dir}/data/tuning/...
+# and {user.dir}/config/tuning/param_groups/ which only works if mvn was
+# launched from the project root.
+paramGroup.mappingCsv=C:/Pseudo-PFLOW/Pseudo-PFLOW/data/tuning/city_code_to_param_group.csv
+paramGroup.dir=C:/Pseudo-PFLOW/Pseudo-PFLOW/config/tuning/param_groups/
+
 # -----------------------------------------------------------------------------
 # Markov chain datasets (activity sequence calibration)
 # -----------------------------------------------------------------------------
