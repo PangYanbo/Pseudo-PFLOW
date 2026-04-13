@@ -70,10 +70,31 @@ TARGET_CSV = PROJECT_ROOT / "data" / "tuning" / "transport_share_targets.csv"
 SEARCH_SPACE = PROJECT_ROOT / "config" / "tuning" / "transport_search_space.yaml"
 OUTPUT_BASE = PROJECT_ROOT / "output" / "tuning"
 
-# Java environment for Maven subprocess calls
-# Override JAVA_HOME unconditionally — the shell default may be wrong
-JAVA_HOME = "/usr/lib/jvm/temurin-21-jdk-amd64"
-MVN_ENV = {**os.environ, "JAVA_HOME": JAVA_HOME}
+# Java environment for Maven subprocess calls.
+#
+# Policy:
+#   - Windows: ALWAYS inherit the user's environment verbatim. The Windows VM
+#     has JAVA_HOME pre-configured (e.g. C:\Program Files\Java\jdk-21.0.10) and
+#     we must not override it.
+#   - Linux/macOS: prefer an inherited JAVA_HOME that points to an existing
+#     directory. If none is set OR the set value is invalid (e.g. the dev
+#     shell has a stale path), fall back to the known dev-machine JDK at
+#     /usr/lib/jvm/temurin-21-jdk-amd64.
+#
+# WARNING: the previous version hardcoded JAVA_HOME to the Linux dev path
+# unconditionally, which broke the Windows tuning path — mvn.cmd saw a
+# non-existent Linux directory and bailed with "JAVA_HOME is not defined
+# correctly" even though the interactive PowerShell session had a valid
+# JAVA_HOME set.
+if os.name == "nt":
+    # Windows: trust the inherited environment
+    MVN_ENV = dict(os.environ)
+else:
+    _inherited = os.environ.get("JAVA_HOME")
+    if _inherited and os.path.isdir(_inherited):
+        MVN_ENV = dict(os.environ)
+    else:
+        MVN_ENV = {**os.environ, "JAVA_HOME": "/usr/lib/jvm/temurin-21-jdk-amd64"}
 
 
 def get_output_dir(pref_code):
