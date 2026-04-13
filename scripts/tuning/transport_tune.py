@@ -19,10 +19,35 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+
+def _resolve_mvn():
+    """Resolve the Maven executable in a cross-platform-safe way.
+
+    On Windows, the Maven launcher is `mvn.cmd` (a batch file). Python's
+    subprocess.run with a list and shell=False uses CreateProcess, which does
+    not search PATHEXT and therefore fails with [WinError 2] when given just
+    "mvn". shutil.which() correctly finds `mvn.cmd` on Windows and `mvn` on
+    Linux/macOS.
+    """
+    path = shutil.which("mvn")
+    if path:
+        return path
+    # Fallback: try mvn.cmd explicitly on Windows
+    if os.name == "nt":
+        path = shutil.which("mvn.cmd")
+        if path:
+            return path
+    # Last resort: return the bare name and let subprocess raise its own error
+    return "mvn"
+
+
+MVN = _resolve_mvn()
 
 # Add scripts/tuning to path for sibling imports
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -91,7 +116,7 @@ def run_activity_generator(pref_code, mfactor, output_dir):
         f.write(f"outputDir={output_dir}/\n")
 
     cmd = [
-        "mvn", "-q", "exec:java",
+        MVN, "-q", "exec:java",
         f"-Dexec.mainClass=pseudo.gen.ActivityGenerator",
         f"-Dexec.args={pref_code} {mfactor}",
         f"-Dconfig.file={activity_config}",
@@ -251,7 +276,7 @@ def run_trip_generator(pref_code, config_id, config_path, mfactor, stage_dir, ta
     print(f"[trip:{config_id}] Sampled activity: {n_written} persons ({details})")
 
     cmd = [
-        "mvn", "-q", "exec:java",
+        MVN, "-q", "exec:java",
         f"-Dexec.mainClass=pseudo.gen.TripGenerator_WebAPI_refactor",
         f"-Dexec.args={pref_code} {mfactor}",
         f"-Dconfig.file={config_path}",

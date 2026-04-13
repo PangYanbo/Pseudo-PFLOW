@@ -37,23 +37,24 @@ if (-not $ReportDir) {
     $ReportDir = Join-Path $OutputRoot "validation\$PrefCode"
 }
 
-# Verify Python is available
-try {
-    $null = & python --version 2>&1
-} catch {
-    try {
-        $null = & python3 --version 2>&1
-    } catch {
-        Write-Error "Python 3.8+ is required. Install from https://www.python.org/downloads/"
-        exit 1
+# Resolve Python interpreter command (prefer 'python', fall back to 'python3').
+# On Windows, 'python' is the standard install; 'python3' typically does NOT
+# exist as a command unless installed via WSL/Cygwin/Chocolatey. On Linux/macOS,
+# both usually exist.
+$PythonCmd = $null
+foreach ($candidate in @("python", "python3")) {
+    $resolved = Get-Command $candidate -ErrorAction SilentlyContinue
+    if ($resolved) {
+        $verOutput = & $candidate --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and $verOutput -match "Python 3") {
+            $PythonCmd = $candidate
+            break
+        }
     }
 }
-
-# Detect python command
-$PythonCmd = "python"
-$PyVer = & python --version 2>&1
-if ($PyVer -notmatch "Python 3") {
-    $PythonCmd = "python3"
+if (-not $PythonCmd) {
+    Write-Error "Python 3.8+ is required. Install from https://www.python.org/downloads/ and ensure 'python' is on PATH."
+    exit 1
 }
 
 Write-Host "=== Validation: prefecture $PrefCode ===" -ForegroundColor Cyan
