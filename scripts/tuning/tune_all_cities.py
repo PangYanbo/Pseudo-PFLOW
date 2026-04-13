@@ -125,8 +125,19 @@ def score_per_city(pref_code, configs, stage_dir):
 
 def write_param_group_config(pref_code, city_code, city_name, config_id,
                               params, loss, output_dir):
-    """Write a per-city param group .properties file."""
-    group_name = f"pref{int(pref_code):02d}_{city_code}"
+    """Write a per-city param group .properties file.
+
+    IMPORTANT: the group name must match the convention used by the canonical
+    data/tuning/city_code_to_param_group.csv, which zero-pads city codes to
+    5 digits (e.g. pref 5 city 5207 → "05207", group name "pref05_05207").
+    transport_share_targets.csv stores city_code as a plain integer without
+    zero padding (e.g. "5207"), so we must normalize here; otherwise the
+    written filename "pref05_5207.properties" will mismatch the precheck's
+    expected "pref05_05207.properties" and run_pref_with_tuning.ps1 will
+    fail with "After tuning, param groups still incomplete".
+    """
+    city_code_5 = f"{int(city_code):05d}"
+    group_name = f"pref{int(pref_code):02d}_{city_code_5}"
     path = output_dir / f"{group_name}.properties"
     with open(path, "w") as f:
         f.write(f"# Parameter group: {group_name}\n")
