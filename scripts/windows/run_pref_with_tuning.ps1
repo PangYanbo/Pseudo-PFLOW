@@ -145,9 +145,12 @@ if ($missingLocal.Count -gt 0) {
     Write-Host ""
 
     # Run Python tuning
+    # IMPORTANT: propagate the outer -MFactor value into the Python tuning
+    # script, otherwise tune_all_cities.py falls back to its default (200)
+    # regardless of what the caller requested.
     Push-Location $ProjectDir
     try {
-        & python -u "scripts\tuning\tune_all_cities.py" --pref $PrefCode
+        & python -u "scripts\tuning\tune_all_cities.py" --pref $PrefCode --mfactor $MFactor
         $tuneExit = $LASTEXITCODE
     } finally {
         Pop-Location
