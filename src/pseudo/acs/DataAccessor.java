@@ -182,7 +182,10 @@ public class DataAccessor {
 					System.err.println("DataAccessor.loadRestaurantData: skipping short row (" + items.length + " cols)");
 					continue;
 				}
-				String gcode = items[7];  // admin code
+				String gcode = items[7];  // admin code (Telepoint uses 4-digit for prefs 01-09)
+				if (gcode.length() == 4 && Character.isDigit(gcode.charAt(0))) {
+					gcode = "0" + gcode;
+				}
 				double lon = Double.parseDouble(items[20]);
 				double lat = Double.parseDouble(items[21]);
 
@@ -229,7 +232,10 @@ public class DataAccessor {
 					System.err.println("DataAccessor.loadRetailData: skipping short row (" + items.length + " cols)");
 					continue;
 				}
-				String gcode = items[7];  // admin code
+				String gcode = items[7];  // admin code (Telepoint uses 4-digit for prefs 01-09)
+				if (gcode.length() == 4 && Character.isDigit(gcode.charAt(0))) {
+					gcode = "0" + gcode;
+				}
 				double lon = Double.parseDouble(items[20]);
 				double lat = Double.parseDouble(items[21]);
 
