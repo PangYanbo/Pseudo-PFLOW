@@ -90,16 +90,19 @@ $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 Push-Location $ProjectDir
 try {
+    $ErrorActionPreference = "Continue"
     & mvn -q exec:java `
         "-Dexec.mainClass=pseudo.gen.ActivityGenerator" `
         "-Dexec.args=$PrefCode $MFactor" `
         "-Dconfig.file=$EffectiveConfig" 2>&1 | Tee-Object -FilePath (Join-Path $LogDir "activity.log")
+    $ErrorActionPreference = "Stop"
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "[$PrefCode] Activity generation failed"
+        Write-Error "[$PrefCode] Activity generation failed (exit code $LASTEXITCODE)"
         exit $LASTEXITCODE
     }
 } finally {
+    $ErrorActionPreference = "Stop"
     Pop-Location
 }
 
@@ -114,16 +117,19 @@ $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 Push-Location $ProjectDir
 try {
+    $ErrorActionPreference = "Continue"
     & mvn -q exec:java `
         "-Dexec.mainClass=pseudo.gen.TripGenerator_WebAPI_refactor" `
         "-Dexec.args=$PrefCode $MFactor" `
         "-Dconfig.file=$EffectiveConfig" 2>&1 | Tee-Object -FilePath (Join-Path $LogDir "trip.log")
+    $ErrorActionPreference = "Stop"
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "[$PrefCode] Trip generation failed"
+        Write-Error "[$PrefCode] Trip generation failed (exit code $LASTEXITCODE)"
         exit $LASTEXITCODE
     }
 } finally {
+    $ErrorActionPreference = "Stop"
     Pop-Location
 }
 
