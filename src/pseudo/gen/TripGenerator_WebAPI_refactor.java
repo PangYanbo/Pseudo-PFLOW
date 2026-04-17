@@ -220,16 +220,32 @@ public class TripGenerator_WebAPI_refactor {
 		sessionParams.add(new BasicNameValuePair("Password", apiPass));
 		createSessionPost.setEntity(new UrlEncodedFormEntity(sessionParams));
 
+		System.out.println("[session] CreateSession → " + createSessionURL);
 		HttpResponse sessionResponse = executePostRequest(this.httpClient, createSessionPost);
-		if (sessionResponse.getStatusLine().getStatusCode() == 200) {
+		int httpStatus = sessionResponse.getStatusLine().getStatusCode();
+		if (httpStatus == 200) {
 			String sessionResponseBody = EntityUtils.toString(sessionResponse.getEntity());
-			System.out.println("Session created successfully");
-			System.out.println(sessionResponseBody);
+			System.out.println("[session] Response body: " + sessionResponseBody.trim());
+			// Log Set-Cookie headers (may interfere with manual cookie passing)
+			org.apache.http.Header[] setCookies = sessionResponse.getHeaders("Set-Cookie");
+			if (setCookies.length > 0) {
+				for (org.apache.http.Header h : setCookies) {
+					System.out.println("[session] Server Set-Cookie: " + h.getValue());
+				}
+			}
 			String[] parts = sessionResponseBody.split(",");
 			String sessionId = (parts.length > 1 ? parts[1] : parts[0]).trim().replace("\r", "").replace("\n", "");
+			if (sessionId.isEmpty()) {
+				throw new RuntimeException("[session] CreateSession returned HTTP 200 but session ID is empty. "
+					+ "Raw response: " + sessionResponseBody);
+			}
+			System.out.println("[session] Active session ID: " + sessionId);
 			return sessionId;
 		} else {
-			throw new RuntimeException("Failed to create WebAPI session: HTTP " + sessionResponse.getStatusLine().getStatusCode());
+			String body = "";
+			try { body = EntityUtils.toString(sessionResponse.getEntity()); } catch (Exception ignored) {}
+			throw new RuntimeException("[session] CreateSession failed: HTTP " + httpStatus
+				+ " from " + createSessionURL + " — body: " + body.trim());
 		}
 	}
 
@@ -984,10 +1000,16 @@ public class TripGenerator_WebAPI_refactor {
 	 * @return list of candidate JsonNodes on HTTP 200, or {@code null} on non-200
 	 *         (signals session expiry / auth failure to the caller for retry).
 	 */
+	private static final AtomicInteger mixedRouteCallCount = new AtomicInteger();
+
 	private static List<JsonNode> getMixedRoutes(CloseableHttpClient httpClient, String sessionid, Map<String, String> params) {
 		String mixedRouteURL = prop.getProperty("api.getMixedRouteURL");
 		if (mixedRouteURL == null) {
 			throw new IllegalStateException("Missing config key: api.getMixedRouteURL");
+		}
+		// Log first call for diagnostics (session + URL verification)
+		if (mixedRouteCallCount.incrementAndGet() == 1) {
+			System.out.println("[API] First GetMixedRoute call → " + mixedRouteURL + " (session=" + sessionid + ")");
 		}
 		HttpPost mixedRoutePost = new HttpPost(mixedRouteURL);
 
@@ -1044,9 +1066,15 @@ public class TripGenerator_WebAPI_refactor {
 					int code = node.asInt();
 					if (code == 10001) {
 						throw new RuntimeException("[API FAILURE] GetMixedRoute returned error 10001 "
-							+ "(session ID not set). This usually means CreateSession and GetMixedRoute "
-							+ "are hitting different servers. Check that api.createSessionURL and "
-							+ "api.getMixedRouteURL use the same host in config.local.properties.");
+							+ "(session not recognized by server). Session ID sent: " + sessionid
+							+ "\nPossible causes:"
+							+ "\n  1) Endpoint mismatch: CreateSession and GetMixedRoute hitting different servers"
+							+ "\n     → Fix: set api.baseURL in config.local.properties"
+							+ "\n  2) Proxy/relay not forwarding session state (if using localhost relay)"
+							+ "\n     → Check proxy configuration maintains backend affinity"
+							+ "\n  3) Session expired or was invalidated between creation and use"
+							+ "\n  4) Load balancer routing to different backend instances"
+							+ "\nCheck the [session] log lines above for the effective URLs and session ID.");
 					}
 				}
 				// Other integer error codes (11000, 11024, etc.) are valid no-route responses
@@ -1084,8 +1112,8 @@ public class TripGenerator_WebAPI_refactor {
 			JsonNode result = mapper.readTree(roadRouteResponseBody);
 			if (result.isInt() && result.asInt() == 10001) {
 				throw new RuntimeException("[API FAILURE] GetRoadRoute returned error 10001 "
-					+ "(session ID not set). Check that api.createSessionURL and "
-					+ "api.getRoadRouteURL use the same host in config.local.properties.");
+					+ "(session not recognized by server). Session ID sent: " + sessionid
+					+ " — see [session] log lines for diagnosis.");
 			}
 			return result;
 		} else {
