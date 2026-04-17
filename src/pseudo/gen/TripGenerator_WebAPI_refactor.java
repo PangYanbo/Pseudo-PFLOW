@@ -1114,10 +1114,36 @@ public class TripGenerator_WebAPI_refactor {
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
 
+		// api.baseURL: single override for the WebAPI server host.
+		// When set, derives all three endpoint URLs automatically.
+		String baseURL = prop.getProperty("api.baseURL");
+		if (baseURL != null) {
+			baseURL = baseURL.replaceAll("/+$", "");
+			prop.setProperty("api.createSessionURL", baseURL + "/webapi/CreateSession");
+			prop.setProperty("api.getRoadRouteURL",  baseURL + "/webapi/GetRoadRoute");
+			prop.setProperty("api.getMixedRouteURL",  baseURL + "/webapi/GetMixedRoute");
+			System.out.println("WebAPI base URL override: " + baseURL);
+		}
+
 		System.out.println("WebAPI endpoints:");
 		System.out.println("  createSession = " + prop.getProperty("api.createSessionURL", "(NOT SET)"));
 		System.out.println("  getMixedRoute = " + prop.getProperty("api.getMixedRouteURL", "(NOT SET)"));
 		System.out.println("  getRoadRoute  = " + prop.getProperty("api.getRoadRouteURL", "(NOT SET)"));
+
+		// Consistency check: all three URLs must use the same host
+		try {
+			String csHost = new java.net.URI(prop.getProperty("api.createSessionURL")).getHost();
+			String mrHost = new java.net.URI(prop.getProperty("api.getMixedRouteURL")).getHost();
+			String rrHost = new java.net.URI(prop.getProperty("api.getRoadRouteURL")).getHost();
+			if (!csHost.equals(mrHost) || !csHost.equals(rrHost)) {
+				System.err.println("WARNING: WebAPI endpoint hosts are INCONSISTENT:");
+				System.err.println("  createSession → " + csHost);
+				System.err.println("  getMixedRoute → " + mrHost);
+				System.err.println("  getRoadRoute  → " + rrHost);
+				System.err.println("  This WILL cause error 10001. Set api.baseURL in config.local.properties.");
+			}
+		} catch (Exception ignored) {
+		}
 		
 		Country japan = new Country();
 

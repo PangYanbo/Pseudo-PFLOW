@@ -101,20 +101,21 @@ pref.47=markov/v2/kyushu2005
 # -----------------------------------------------------------------------------
 # API endpoints (CSIS WebAPI routing service)
 # -----------------------------------------------------------------------------
-# IMPORTANT: All three URLs must point to the SAME server.
-# If your environment uses a local proxy/relay instead of the CSIS server,
-# change the host in all three lines consistently.
-# Mismatched hosts cause error 10001 (session ID not set).
+# Set api.baseURL to change the WebAPI server. This single property derives
+# all three endpoint URLs (CreateSession, GetRoadRoute, GetMixedRoute)
+# automatically, so there is no risk of host mismatch.
 #
-# Default (direct CSIS access):
-api.createSessionURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession
-api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
-api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
+# Default (direct CSIS access — used when api.baseURL is not set):
+#   https://pflow-api.csis.u-tokyo.ac.jp
 #
-# Example for localhost relay:
-# api.createSessionURL=https://localhost/webapi/CreateSession
-# api.getRoadRouteURL=https://localhost/webapi/GetRoadRoute
-# api.getMixedRouteURL=https://localhost/webapi/GetMixedRoute
+# Uncomment ONE of these:
+# api.baseURL=https://pflow-api.csis.u-tokyo.ac.jp
+# api.baseURL=https://localhost
+#
+# You can still override individual URLs if needed (not recommended):
+# api.createSessionURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession
+# api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
+# api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
 
 # -----------------------------------------------------------------------------
 # API parameters (transit routing)
