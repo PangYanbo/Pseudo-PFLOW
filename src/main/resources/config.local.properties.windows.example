@@ -101,11 +101,20 @@ pref.47=markov/v2/kyushu2005
 # -----------------------------------------------------------------------------
 # API endpoints (CSIS WebAPI routing service)
 # -----------------------------------------------------------------------------
-# These URLs should not need changing unless the API moves.
-
+# IMPORTANT: All three URLs must point to the SAME server.
+# If your environment uses a local proxy/relay instead of the CSIS server,
+# change the host in all three lines consistently.
+# Mismatched hosts cause error 10001 (session ID not set).
+#
+# Default (direct CSIS access):
 api.createSessionURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession
 api.getRoadRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute
 api.getMixedRouteURL=https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute
+#
+# Example for localhost relay:
+# api.createSessionURL=https://localhost/webapi/CreateSession
+# api.getRoadRouteURL=https://localhost/webapi/GetRoadRoute
+# api.getMixedRouteURL=https://localhost/webapi/GetMixedRoute
 
 # -----------------------------------------------------------------------------
 # API parameters (transit routing)

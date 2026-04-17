@@ -1040,8 +1040,16 @@ public class TripGenerator_WebAPI_refactor {
 				JsonNode node = mapper.readTree(trimmed);
 				if (node.isObject()) {
 					candidates.add(node);
+				} else if (node.isInt()) {
+					int code = node.asInt();
+					if (code == 10001) {
+						throw new RuntimeException("[API FAILURE] GetMixedRoute returned error 10001 "
+							+ "(session ID not set). This usually means CreateSession and GetMixedRoute "
+							+ "are hitting different servers. Check that api.createSessionURL and "
+							+ "api.getMixedRouteURL use the same host in config.local.properties.");
+					}
 				}
-				// Integer error codes (11000, 11024, etc.) are valid no-route responses
+				// Other integer error codes (11000, 11024, etc.) are valid no-route responses
 			} catch (IOException e) {
 				parseFailCount++;
 			}
@@ -1073,7 +1081,13 @@ public class TripGenerator_WebAPI_refactor {
 
 		if (roadRouteResponse.getStatusLine().getStatusCode() == 200) {
 			String roadRouteResponseBody = EntityUtils.toString(roadRouteResponse.getEntity());
-			return mapper.readTree(roadRouteResponseBody);
+			JsonNode result = mapper.readTree(roadRouteResponseBody);
+			if (result.isInt() && result.asInt() == 10001) {
+				throw new RuntimeException("[API FAILURE] GetRoadRoute returned error 10001 "
+					+ "(session ID not set). Check that api.createSessionURL and "
+					+ "api.getRoadRouteURL use the same host in config.local.properties.");
+			}
+			return result;
 		} else {
 			System.out.println("Failed to get road route: " + roadRouteResponse.getStatusLine().getStatusCode());
 			return mapper.readTree("");
@@ -1099,6 +1113,11 @@ public class TripGenerator_WebAPI_refactor {
 		String inputDir = prop.getProperty("inputDir");
 		System.out.println("Root Directory: " + root);
 		System.out.println("Input Directory: " + inputDir);
+
+		System.out.println("WebAPI endpoints:");
+		System.out.println("  createSession = " + prop.getProperty("api.createSessionURL", "(NOT SET)"));
+		System.out.println("  getMixedRoute = " + prop.getProperty("api.getMixedRouteURL", "(NOT SET)"));
+		System.out.println("  getRoadRoute  = " + prop.getProperty("api.getRoadRouteURL", "(NOT SET)"));
 		
 		Country japan = new Country();
 

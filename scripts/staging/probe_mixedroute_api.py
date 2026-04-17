@@ -6,8 +6,13 @@ and dumps raw responses for forensic analysis.
 
 Usage:
     PFLOW_API_USER=xxx PFLOW_API_PASS=xxx python3 scripts/staging/probe_mixedroute_api.py
+
+    # Override base URL (e.g. localhost relay):
+    PFLOW_API_USER=xxx PFLOW_API_PASS=xxx python3 scripts/staging/probe_mixedroute_api.py \\
+        --base-url https://localhost
 """
 
+import argparse
 import json
 import os
 import sys
@@ -16,10 +21,8 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# API endpoints
-CREATE_SESSION_URL = "https://pflow-api.csis.u-tokyo.ac.jp/webapi/CreateSession"
-GET_MIXED_ROUTE_URL = "https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetMixedRoute"
-GET_ROAD_ROUTE_URL = "https://pflow-api.csis.u-tokyo.ac.jp/webapi/GetRoadRoute"
+# Default API base URL (overridable via --base-url)
+DEFAULT_BASE_URL = "https://pflow-api.csis.u-tokyo.ac.jp"
 
 # Representative OD pairs in Shizuoka (pref 22) — different distance ranges
 OD_PAIRS = [
@@ -44,8 +47,10 @@ APP_DATES = [
 APP_TIME = "0800"  # 8:00 AM
 
 
-def create_session(user, password):
-    resp = requests.post(CREATE_SESSION_URL, data={
+def create_session(user, password, base_url):
+    url = f"{base_url}/webapi/CreateSession"
+    print(f"CreateSession URL: {url}")
+    resp = requests.post(url, data={
         "UserID": user, "Password": password
     }, verify=False)
     print(f"CreateSession: HTTP {resp.status_code}")
@@ -57,7 +62,8 @@ def create_session(user, password):
     return session_id
 
 
-def query_mixed_route(session_id, od, app_date, app_time="0800"):
+def query_mixed_route(session_id, od, app_date, base_url, app_time="0800"):
+    url = f"{base_url}/webapi/GetMixedRoute"
     params = {
         "UnitTypeCode": "2",
         "StartLongitude": str(od["olon"]),
@@ -71,11 +77,12 @@ def query_mixed_route(session_id, od, app_date, app_time="0800"):
         "MaxRoutes": "9",
     }
     cookies = {"WebApiSessionID": session_id}
-    resp = requests.post(GET_MIXED_ROUTE_URL, data=params, cookies=cookies, verify=False)
+    resp = requests.post(url, data=params, cookies=cookies, verify=False)
     return resp
 
 
-def query_road_route(session_id, od):
+def query_road_route(session_id, od, base_url):
+    url = f"{base_url}/webapi/GetRoadRoute"
     params = {
         "UnitTypeCode": "2",
         "StartLongitude": str(od["olon"]),
@@ -84,7 +91,7 @@ def query_road_route(session_id, od):
         "GoalLatitude": str(od["dlat"]),
     }
     cookies = {"WebApiSessionID": session_id}
-    resp = requests.post(GET_ROAD_ROUTE_URL, data=params, cookies=cookies, verify=False)
+    resp = requests.post(url, data=params, cookies=cookies, verify=False)
     return resp
 
 
@@ -135,6 +142,12 @@ def analyze_response(resp, label):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Probe CSIS WebAPI endpoints")
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL,
+                        help=f"API base URL (default: {DEFAULT_BASE_URL})")
+    args = parser.parse_args()
+    base_url = args.base_url.rstrip("/")
+
     user = os.environ.get("PFLOW_API_USER")
     password = os.environ.get("PFLOW_API_PASS")
     if not user or not password:
@@ -143,14 +156,15 @@ def main():
 
     print("=" * 70)
     print("CSIS GetMixedRoute API Probe")
+    print(f"Base URL: {base_url}")
     print("=" * 70)
 
-    session_id = create_session(user, password)
+    session_id = create_session(user, password, base_url)
     print()
 
     # First: one road route query as baseline (confirm API is working)
     print("--- Road route baseline (Hamamatsu→Shizuoka) ---")
-    resp = query_road_route(session_id, OD_PAIRS[2])
+    resp = query_road_route(session_id, OD_PAIRS[2], base_url)
     analyze_response(resp, "RoadRoute")
 
     # Main probe: mixed route queries with different AppDates
@@ -163,7 +177,7 @@ def main():
         print("=" * 70)
 
         for app_date in APP_DATES:
-            resp = query_mixed_route(session_id, od, app_date, APP_TIME)
+            resp = query_mixed_route(session_id, od, app_date, base_url, APP_TIME)
             analyze_response(resp, f"AppDate={app_date}")
 
     print()
