@@ -1023,7 +1023,10 @@ public class TripGenerator_WebAPI_refactor {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-		mixedRoutePost.setHeader("Cookie", "WebApiSessionID=" + sessionid);
+		// Let HttpClient's cookie jar send all cookies from CreateSession
+		// (WebApiSessionID + JSESSIONID + WebApiResearchID).
+		// Do NOT use setHeader("Cookie", ...) — it overwrites the jar and
+		// drops JSESSIONID, which the backend needs for session affinity.
 
 		HttpResponse mixedRouteResponse;
 		try {
@@ -1102,7 +1105,6 @@ public class TripGenerator_WebAPI_refactor {
 		}
 
 		roadRoutePost.setEntity(new UrlEncodedFormEntity(roadRouteParams));
-		roadRoutePost.setHeader("Cookie", "WebApiSessionID=" + sessionid);
 
 		HttpResponse roadRouteResponse = executePostRequest(httpClient, roadRoutePost);
 		ObjectMapper mapper = new ObjectMapper();
